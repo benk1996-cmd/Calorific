@@ -63,7 +63,10 @@ def main(argv: list[str] | None = None) -> int:
             db.upsert_many("food_reference", rows, "source,source_id")
     if db and total:
         print(f"usda rows in DB: {db.count('food_reference', source='eq.usda')}")
-        print(f"database size: {db.rpc('db_size_mb', {})} MB (free limit 500 MB)")
+        try:
+            print(f"database size: {db.rpc('db_size_mb', {})} MB (free limit 500 MB)")
+        except Exception as e:  # data is already loaded; the size check is informational
+            print(f"(could not read database size: {e}. Did you run 0002_search.sql?)")
     elif not total:
         print("Nothing loaded. Check data/raw/usda/ layout (BUILD_PLAN.md Part 3.2).")
     return 0
