@@ -49,19 +49,23 @@ class AnalysisError(Exception):
     pass
 
 
+def photo_messages(image: bytes, mime: str, note: str | None = None) -> list[dict]:
+    """Chat messages for a photo analysis (shared by the app and scripts/eval.py)."""
+    url = f"data:{mime};base64,{base64.b64encode(image).decode()}"
+    prompt = "Identify the food in this photo." + (f" User note: {note}" if note else "")
+    return [
+        {"role": "system", "content": VISION_SYSTEM},
+        {"role": "user", "content": [
+            {"type": "text", "text": prompt}, {"type": "image_url", "image_url": {"url": url}}]},
+    ]
+
+
 class Analyzer:
     def __init__(self, provider: LLMProvider, consume: Callable[[], bool], *, timeout: float = 60):
         self.provider, self.consume, self.timeout = provider, consume, timeout
 
     def analyze_photo(self, image: bytes, mime: str, note: str | None, models: list[str]) -> AnalysisResult:
-        url = f"data:{mime};base64,{base64.b64encode(image).decode()}"
-        prompt = "Identify the food in this photo." + (f" User note: {note}" if note else "")
-        messages = [
-            {"role": "system", "content": VISION_SYSTEM},
-            {"role": "user", "content": [
-                {"type": "text", "text": prompt}, {"type": "image_url", "image_url": {"url": url}}]},
-        ]
-        return self._run(models, messages)
+        return self._run(models, photo_messages(image, mime, note))
 
     def analyze_text(self, text: str, models: list[str]) -> AnalysisResult:
         messages = [{"role": "system", "content": TEXT_SYSTEM}, {"role": "user", "content": f"USER_TEXT: {text}"}]

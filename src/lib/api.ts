@@ -1,3 +1,4 @@
+import { NETWORK_ERROR, friendlyError } from "./errors";
 import { supabase } from "./supabase";
 
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -5,14 +6,20 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers);
   if (data.session) headers.set("Authorization", `Bearer ${data.session.access_token}`);
   if (init.body && !(init.body instanceof FormData)) headers.set("Content-Type", "application/json");
-  const r = await fetch(path, { ...init, headers });
+  let r: Response;
+  try {
+    r = await fetch(path, { ...init, headers });
+  } catch {
+    throw new Error(NETWORK_ERROR);
+  }
   if (!r.ok) {
-    let msg = r.statusText;
+    let detail: string | null = null;
     try {
       const j = await r.json();
-      msg = typeof j.detail === "string" ? j.detail : JSON.stringify(j.detail ?? j);
-    } catch { /* non-JSON error body */ }
-    throw new Error(msg);
+      detail = typeof j.detail === "string" ? j.detail : j.detail ? JSON.stringify(j.detail) : null;
+    } catch { /* non-JSON body (e.g. a gateway error page) */ }
+    if (r.status === 401 && data.session) void supabase.auth.signOut(); // expired session: back to login
+    throw new Error(friendlyError(r.status, detail, r.statusText));
   }
   return r.json() as Promise<T>;
 }
@@ -71,10 +78,19 @@ export interface History {
 /** Download the CSV export (needs the auth header, so it cannot be a plain link). */
 export async function downloadCsv(from: string, to: string): Promise<void> {
   const { data } = await supabase.auth.getSession();
-  const r = await fetch(`/api/export.csv?from=${from}&to=${to}`, {
-    headers: data.session ? { Authorization: `Bearer ${data.session.access_token}` } : {},
-  });
-  if (!r.ok) throw new Error((await r.text()) || r.statusText);
+  let r: Response;
+  try {
+    r = await fetch(`/api/export.csv?from=${from}&to=${to}`, {
+      headers: data.session ? { Authorization: `Bearer ${data.session.access_token}` } : {},
+    });
+  } catch {
+    throw new Error(NETWORK_ERROR);
+  }
+  if (!r.ok) {
+    let detail: string | null = null;
+    try { detail = (await r.json()).detail ?? null; } catch { /* not JSON */ }
+    throw new Error(friendlyError(r.status, typeof detail === "string" ? detail : null, r.statusText));
+  }
   const url = URL.createObjectURL(await r.blob());
   const a = document.createElement("a");
   a.href = url; a.download = `calorific_${from}_${to}.csv`;
