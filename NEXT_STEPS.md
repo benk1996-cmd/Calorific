@@ -51,7 +51,7 @@ Local run reminder:
 ```bash
 # terminal 1 (backend)
 source .venv/bin/activate && set -a && source .env && set +a
-uvicorn api.index:app --reload --port 8000
+python -m uvicorn api.index:app --reload --port 8000
 # terminal 2 (frontend)
 npm run dev
 ```
