@@ -43,3 +43,8 @@ def test_usda_nutrients_energy_priority_and_missing():
 def test_foodref_from_row():
     f = FoodRef.from_row({"id": 1, "source": "usda", "name": "x", "serving_g": "100", "score": 0.5})
     assert f.serving_g == 100.0 and f.score == 0.5 and not f.is_exact
+
+
+def test_usda_nutrients_fndds_number_scheme():
+    d = usda_nutrients([(208, "300"), (203, "20"), (204, "10"), (205, "40"), (291, "3"), (269, "5"), (307, "600")])
+    assert d == {"kcal": 300, "protein_g": 20, "fat_g": 10, "carbs_g": 40, "sugar_g": 5, "sodium_mg": 600, "fibre_g": 3}

@@ -4,10 +4,13 @@ from typing import Any, Iterable
 
 NUTRIENTS = ("kcal", "protein_g", "carbs_g", "fat_g", "sugar_g", "sodium_mg", "fibre_g")
 
-# USDA FoodData Central nutrient ids -> our keys. Energy has several ids; earlier = preferred.
-USDA_ENERGY_IDS = (1008, 2047, 2048)
+# USDA FoodData Central nutrient codes -> our keys. Energy has several codes; earlier = preferred.
+# Foundation/SR Legacy/API use nutrient ids (1008, 1003...); the FNDDS download uses nutrient numbers
+# (208, 203...) in the same column, so both sets are accepted (the ranges do not overlap).
+USDA_ENERGY_IDS = (1008, 2047, 2048, 208, 957, 958)
 USDA_NUTRIENT_IDS = {
     1003: "protein_g", 1004: "fat_g", 1005: "carbs_g", 1079: "fibre_g", 2000: "sugar_g", 1093: "sodium_mg",
+    203: "protein_g", 204: "fat_g", 205: "carbs_g", 291: "fibre_g", 269: "sugar_g", 307: "sodium_mg",
 }
 
 _TRACE = {"tr", "trace"}
