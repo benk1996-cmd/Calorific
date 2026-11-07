@@ -43,7 +43,10 @@ create table food_reference (
   unique (source, source_id)
 );
 create index food_reference_name_trgm on food_reference using gin (name gin_trgm_ops);
-create index food_reference_aliases_trgm on food_reference using gin ((array_to_string(aliases,' ')) gin_trgm_ops);
+-- array_to_string is only STABLE, so wrap it to use in an index. Queries must call this same function.
+create or replace function immutable_join(arr text[]) returns text
+  language sql immutable parallel safe as $$ select array_to_string(arr, ' ') $$;
+create index food_reference_aliases_trgm on food_reference using gin (immutable_join(aliases) gin_trgm_ops);
 
 create table meals (
   id uuid primary key default gen_random_uuid(),
