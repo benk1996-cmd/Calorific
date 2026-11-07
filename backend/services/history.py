@@ -3,8 +3,8 @@ import csv
 import io
 from datetime import date, timedelta
 
-from api.db import Db
-from api.services.foodref import NUTRIENTS
+from backend.db import Db
+from backend.services.foodref import NUTRIENTS
 
 CHUNK = 50  # meal ids per items query (keeps URLs short)
 

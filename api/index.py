@@ -1,28 +1,3 @@
-"""FastAPI entrypoint (Vercel Python Function). Routers are added per milestone."""
-from fastapi import FastAPI
-
-from api.config import get_settings
-from api.routers_analyze import router as analyze_router
-from api.routers_foods import router as foods_router
-from api.routers_history import router as history_router
-from api.routers_meals import router as meals_router
-from api.routers_profile import router as profile_router
-
-app = FastAPI(title="Calorific API", docs_url="/api/docs", openapi_url="/api/openapi.json")
-
-app.include_router(profile_router)
-app.include_router(foods_router)
-app.include_router(analyze_router)
-app.include_router(meals_router)
-app.include_router(history_router)
-
-
-@app.get("/api/health")
-def health() -> dict:
-    s = get_settings()
-    return {
-        "status": "ok",
-        "llm_mock": s.llm_mock,
-        "vision_models": s.vision_models,
-        "supabase_configured": bool(s.supabase_url),
-    }
+"""Vercel Python Function entrypoint. Application code lives in backend/ (files inside api/ would each be
+deployed as a separate function)."""
+from backend.main import app  # noqa: F401  (Vercel serves the ASGI `app`)

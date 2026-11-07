@@ -5,7 +5,7 @@ from dataclasses import dataclass
 import httpx
 from fastapi import Depends, Header, HTTPException
 
-from api.config import Settings, get_settings
+from backend.config import Settings, get_settings
 
 
 @dataclass(frozen=True)

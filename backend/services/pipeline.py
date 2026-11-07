@@ -1,11 +1,11 @@
 """Turns an AnalysisResult into saved meal + items (resolve -> calculate -> save)."""
 from datetime import datetime, timezone
 
-from api.db import Db
-from api.schemas import AnalysisResult
-from api.services.calc import CalcConfig, compute_item
-from api.services.resolver import Resolver
-from api.services.tally import local_date_for, meal_type_for
+from backend.db import Db
+from backend.schemas import AnalysisResult
+from backend.services.calc import CalcConfig, compute_item
+from backend.services.resolver import Resolver
+from backend.services.tally import local_date_for, meal_type_for
 
 
 def build_item_rows(result: AnalysisResult, resolver: Resolver, cfg: CalcConfig) -> list[dict]:

@@ -3,13 +3,13 @@ import io
 import pytest
 from fastapi.testclient import TestClient
 
-from api.auth import User, get_current_user
-from api.config import Settings, get_settings
-from api.db import get_db
-from api.index import app
-from api.routers_analyze import get_provider, sniff_image
-from api.services.foodref import build_food_row
-from api.services.llm import LLMTransient, MockProvider
+from backend.auth import User, get_current_user
+from backend.config import Settings, get_settings
+from backend.db import get_db
+from backend.main import app
+from backend.routers_analyze import get_provider, sniff_image
+from backend.services.foodref import build_food_row
+from backend.services.llm import LLMTransient, MockProvider
 from tests.fakes import FakeDb
 
 JPEG = b"\xff\xd8\xff\xe0" + b"0" * 100
@@ -147,7 +147,7 @@ def test_provider_selection():
     from fastapi import HTTPException
     with pytest.raises(HTTPException):
         get_provider(s)
-    from api.services.llm import OpenRouterProvider
+    from backend.services.llm import OpenRouterProvider
     assert isinstance(get_provider(Settings(llm_mock=False, openrouter_api_key="k")), OpenRouterProvider)
     assert isinstance(get_provider(Settings(llm_mock=True)), MockProvider)
 
@@ -159,6 +159,6 @@ def test_sniff_image():
 
 
 def test_no_models_configured_is_clean_error():
-    from api.services.analyzer import Analyzer, AnalysisError
+    from backend.services.analyzer import Analyzer, AnalysisError
     with pytest.raises(AnalysisError):
         Analyzer(MockProvider(), lambda: True).analyze_text("x", [])

@@ -1,8 +1,8 @@
 """Food lookup repository: Postgres-backed (via the search_foods SQL function)."""
 from typing import Protocol
 
-from api.db import Db
-from api.services.foodref import FoodRef
+from backend.db import Db
+from backend.services.foodref import FoodRef
 
 
 class FoodRepo(Protocol):

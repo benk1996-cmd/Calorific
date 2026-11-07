@@ -1,8 +1,8 @@
 """In-memory FoodRepo mimicking search_foods (pg_trgm-style similarity)."""
 import re
 
-from api.db import Db
-from api.services.foodref import FoodRef
+from backend.db import Db
+from backend.services.foodref import FoodRef
 
 
 def trigrams(s: str) -> set[str]:

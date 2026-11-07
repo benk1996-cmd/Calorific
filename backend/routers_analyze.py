@@ -5,18 +5,18 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel, Field
 from starlette.formparsers import MultiPartParser
 
-from api.auth import User, get_current_user
-from api.config import Settings, get_settings
-from api.db import Db, get_db
-from api.services import tally
-from api.services.analyzer import Analyzer, AnalysisError, QuotaExceeded, ServiceBusy
-from api.services.calc import config_from_env
-from api.services.foodrepo import DbFoodRepo
-from api.services.llm import LLMProvider, MockProvider, OpenRouterProvider
-from api.services.pipeline import build_item_rows, save_meal
-from api.services.quota import get_usage, make_consumer
-from api.services.resolver import Resolver
-from api.services.usda import UsdaClient
+from backend.auth import User, get_current_user
+from backend.config import Settings, get_settings
+from backend.db import Db, get_db
+from backend.services import tally
+from backend.services.analyzer import Analyzer, AnalysisError, QuotaExceeded, ServiceBusy
+from backend.services.calc import config_from_env
+from backend.services.foodrepo import DbFoodRepo
+from backend.services.llm import LLMProvider, MockProvider, OpenRouterProvider
+from backend.services.pipeline import build_item_rows, save_meal
+from backend.services.quota import get_usage, make_consumer
+from backend.services.resolver import Resolver
+from backend.services.usda import UsdaClient
 
 # Keep uploads in memory: Starlette spools parts above 1 MB to disk by default; photos must never be stored.
 MultiPartParser.spool_max_size = 2 * 1024 * 1024

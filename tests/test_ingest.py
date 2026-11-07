@@ -3,9 +3,9 @@ import csv
 import pytest
 from fastapi.testclient import TestClient
 
-from api.auth import User, get_current_user
-from api.db import get_db
-from api.index import app
+from backend.auth import User, get_current_user
+from backend.db import get_db
+from backend.main import app
 from scripts import ingest_sgfoodid as sg
 from scripts import ingest_usda as us
 

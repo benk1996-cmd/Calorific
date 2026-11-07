@@ -4,7 +4,7 @@ import re
 
 from pydantic import ValidationError
 
-from api.schemas import AnalysisResult
+from backend.schemas import AnalysisResult
 
 
 class ParseError(Exception):

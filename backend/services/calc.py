@@ -9,8 +9,8 @@ name already encodes the variant (e.g. an HPB "Kopi O kosong" entry)."""
 import os
 from dataclasses import dataclass
 
-from api.schemas import FoodItem
-from api.services.foodref import NUTRIENTS, FoodRef
+from backend.schemas import FoodItem
+from backend.services.foodref import NUTRIENTS, FoodRef
 
 MASS_UNITS = {"g", "gram", "grams", "ml", "millilitre", "milliliter", "millilitres", "milliliters"}
 

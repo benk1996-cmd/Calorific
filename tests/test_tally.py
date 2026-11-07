@@ -2,8 +2,8 @@ from datetime import datetime, timezone
 
 import pytest
 
-from api.config import Settings
-from api.services import quota, tally
+from backend.config import Settings
+from backend.services import quota, tally
 from tests.fakes import FakeDb
 
 U = lambda *a: datetime(*a, tzinfo=timezone.utc)  # noqa: E731

@@ -6,9 +6,9 @@ resolving never spends model calls."""
 from dataclasses import dataclass
 from typing import Callable, Sequence
 
-from api.services.foodref import FoodRef
-from api.services.foodrepo import FoodRepo
-from api.services.usda import UsdaClient
+from backend.services.foodref import FoodRef
+from backend.services.foodrepo import FoodRepo
+from backend.services.usda import UsdaClient
 
 TOP_K = 5
 

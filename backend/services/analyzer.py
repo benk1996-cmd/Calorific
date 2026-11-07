@@ -6,9 +6,9 @@ on unparseable output retry once with a "valid JSON only" nudge. At most MAX_ATT
 import base64
 from typing import Callable
 
-from api.schemas import AnalysisResult
-from api.services.llm import LLMFatal, LLMProvider, LLMTransient
-from api.services.parsing import ParseError, parse_result
+from backend.schemas import AnalysisResult
+from backend.services.llm import LLMFatal, LLMProvider, LLMTransient
+from backend.services.parsing import ParseError, parse_result
 
 MAX_ATTEMPTS = 3
 SCHEMA = (

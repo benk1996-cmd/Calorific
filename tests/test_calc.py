@@ -1,8 +1,8 @@
 import pytest
 
-from api.schemas import EstNutrients, FoodItem, Portion
-from api.services.calc import CalcConfig, apply_modifiers, compute_item, config_from_env, round_kcal
-from api.services.foodref import FoodRef
+from backend.schemas import EstNutrients, FoodItem, Portion
+from backend.services.calc import CalcConfig, apply_modifiers, compute_item, config_from_env, round_kcal
+from backend.services.foodref import FoodRef
 
 N = lambda **k: {"kcal": 0.0, "protein_g": 0.0, "carbs_g": 0.0, "fat_g": 0.0, "sugar_g": 0.0, "sodium_mg": 0.0, "fibre_g": 0.0, **k}  # noqa: E731
 

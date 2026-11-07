@@ -1,6 +1,6 @@
 import pytest
 
-from api.services import targets as T
+from backend.services import targets as T
 
 
 def test_bmr_known_values():

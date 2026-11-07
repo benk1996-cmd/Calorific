@@ -5,10 +5,10 @@ from datetime import date
 import pytest
 from fastapi.testclient import TestClient
 
-from api.auth import User, get_current_user
-from api.db import get_db
-from api.index import app
-from api.services import history as H
+from backend.auth import User, get_current_user
+from backend.db import get_db
+from backend.main import app
+from backend.services import history as H
 from tests.fakes import FakeDb
 
 PROFILE = {"user_id": "A", "timezone": "Asia/Singapore", "target_kcal": 2000, "target_protein_g": 150,

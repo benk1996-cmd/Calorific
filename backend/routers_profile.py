@@ -6,9 +6,9 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from api.auth import User, get_current_user
-from api.db import Db, get_db
-from api.services import targets as T
+from backend.auth import User, get_current_user
+from backend.db import Db, get_db
+from backend.services import targets as T
 
 router = APIRouter(prefix="/api")
 

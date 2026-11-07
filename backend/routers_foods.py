@@ -1,9 +1,9 @@
 """GET /api/foods/search?q= — food search used when editing meals and for manual add (no model call)."""
 from fastapi import APIRouter, Depends, Query
 
-from api.auth import User, get_current_user
-from api.db import Db, get_db
-from api.services.foodrepo import DbFoodRepo
+from backend.auth import User, get_current_user
+from backend.db import Db, get_db
+from backend.services.foodrepo import DbFoodRepo
 
 router = APIRouter(prefix="/api")
 SEARCH_MIN_SIM = 0.15

@@ -1,9 +1,9 @@
 import httpx
 import pytest
 
-from api.services.foodref import build_food_row
-from api.services.resolver import Resolver
-from api.services.usda import UsdaClient
+from backend.services.foodref import build_food_row
+from backend.services.resolver import Resolver
+from backend.services.usda import UsdaClient
 from tests.fakes import FakeRepo
 
 SG_DISHES = [

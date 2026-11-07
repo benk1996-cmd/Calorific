@@ -3,10 +3,10 @@ import json
 import httpx
 import pytest
 
-from api.schemas import AnalysisResult, FoodItem
-from api.services.analyzer import MAX_ATTEMPTS, Analyzer, AnalysisError, QuotaExceeded, ServiceBusy
-from api.services.llm import LLMFatal, LLMTransient, MockProvider, OpenRouterProvider
-from api.services.parsing import ParseError, extract_json, parse_result
+from backend.schemas import AnalysisResult, FoodItem
+from backend.services.analyzer import MAX_ATTEMPTS, Analyzer, AnalysisError, QuotaExceeded, ServiceBusy
+from backend.services.llm import LLMFatal, LLMTransient, MockProvider, OpenRouterProvider
+from backend.services.parsing import ParseError, extract_json, parse_result
 
 GOOD = json.dumps({"items": [{"name": "Laksa", "portion": {"amount": "1", "unit": "bowl", "est_grams": "600g"},
                                "est_nutrients": {"kcal": "589 kcal"}, "confidence": 1.7}]})

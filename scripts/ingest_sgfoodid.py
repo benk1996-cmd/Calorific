@@ -16,7 +16,7 @@ from typing import Any
 
 from scripts._common import ROOT, load_env
 
-from api.services.foodref import NUTRIENTS, build_food_row, nutrient_dict, parse_number
+from backend.services.foodref import NUTRIENTS, build_food_row, nutrient_dict, parse_number
 
 RAW_DIR = ROOT / "data" / "raw" / "sgfoodid"
 SUFFIXES = {".csv", ".xlsx", ".xlsm"}
@@ -122,7 +122,7 @@ def ingest(files: list[Path], m: dict, dry_run: bool) -> int:
             print("sample:", r)
         print("Dry run: nothing written.")
         return 0
-    from api.db import Db
+    from backend.db import Db
 
     db = Db()
     db.upsert_many("food_reference", list(rows_out.values()), "source,source_id")

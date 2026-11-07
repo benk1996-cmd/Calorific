@@ -12,7 +12,7 @@ from pathlib import Path
 
 from scripts._common import ROOT, load_env
 
-from api.services.foodref import USDA_ENERGY_IDS, USDA_NUTRIENT_IDS, build_food_row, usda_nutrients
+from backend.services.foodref import USDA_ENERGY_IDS, USDA_NUTRIENT_IDS, build_food_row, usda_nutrients
 
 USDA_DIR = ROOT / "data" / "raw" / "usda"
 FOLDERS = {"foundation": "foundation_food", "sr_legacy": "sr_legacy_food", "fndds": "survey_fndds_food"}
@@ -47,7 +47,7 @@ def main(argv: list[str] | None = None) -> int:
     load_env()
     db = None
     if not args.dry_run:
-        from api.db import Db
+        from backend.db import Db
 
         db = Db()
     total = 0

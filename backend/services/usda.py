@@ -4,8 +4,8 @@ from typing import Callable
 
 import httpx
 
-from api.services.foodref import FoodRef, build_food_row, usda_nutrients
-from api.services.foodrepo import FoodRepo
+from backend.services.foodref import FoodRef, build_food_row, usda_nutrients
+from backend.services.foodrepo import FoodRepo
 
 SEARCH_URL = "https://api.nal.usda.gov/fdc/v1/foods/search"
 # Branded foods are excluded on purpose: prefer Foundation / SR Legacy / Survey (FNDDS).

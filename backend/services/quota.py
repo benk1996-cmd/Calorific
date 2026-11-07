@@ -3,8 +3,8 @@ from datetime import datetime, timezone
 from typing import Callable
 from zoneinfo import ZoneInfo
 
-from api.config import Settings
-from api.db import Db
+from backend.config import Settings
+from backend.db import Db
 
 SGT = ZoneInfo("Asia/Singapore")
 

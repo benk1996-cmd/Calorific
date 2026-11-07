@@ -1,14 +1,14 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from api.auth import User, get_current_user
-from api.config import Settings, get_settings
-from api.db import get_db
-from api.index import app
-from api.routers_analyze import get_provider
-from api.services.calc import recompute_item
-from api.services.foodref import FoodRef, build_food_row
-from api.services.llm import MockProvider
+from backend.auth import User, get_current_user
+from backend.config import Settings, get_settings
+from backend.db import get_db
+from backend.main import app
+from backend.routers_analyze import get_provider
+from backend.services.calc import recompute_item
+from backend.services.foodref import FoodRef, build_food_row
+from backend.services.llm import MockProvider
 from tests.fakes import FakeDb
 
 PROFILE = {"user_id": "A", "timezone": "Asia/Singapore", "target_kcal": 2000, "target_protein_g": 150,

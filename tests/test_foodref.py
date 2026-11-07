@@ -1,6 +1,6 @@
 import pytest
 
-from api.services.foodref import FoodRef, build_food_row, derive_missing, nutrient_dict, parse_number, usda_nutrients
+from backend.services.foodref import FoodRef, build_food_row, derive_missing, nutrient_dict, parse_number, usda_nutrients
 
 
 @pytest.mark.parametrize("v,exp", [

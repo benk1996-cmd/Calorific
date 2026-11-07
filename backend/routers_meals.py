@@ -5,13 +5,13 @@ from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from api.auth import User, get_current_user
-from api.db import Db, get_db
-from api.services.calc import recompute_item
-from api.services.foodref import FoodRef, NUTRIENTS
-from api.services.foodrepo import DbFoodRepo
-from api.services.pipeline import save_meal
-from api.services.tally import daily_summary
+from backend.auth import User, get_current_user
+from backend.db import Db, get_db
+from backend.services.calc import recompute_item
+from backend.services.foodref import FoodRef, NUTRIENTS
+from backend.services.foodrepo import DbFoodRepo
+from backend.services.pipeline import save_meal
+from backend.services.tally import daily_summary
 
 router = APIRouter(prefix="/api")
 MealType = Literal["breakfast", "lunch", "snack", "dinner"]

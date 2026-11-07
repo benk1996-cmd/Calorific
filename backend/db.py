@@ -1,7 +1,7 @@
 """Minimal PostgREST client using the service-role key. Callers MUST scope by user_id."""
 import httpx
 
-from api.config import Settings, get_settings
+from backend.config import Settings, get_settings
 
 
 class Db:
