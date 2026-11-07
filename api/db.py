@@ -32,5 +32,28 @@ class Db:
         return r.json()[0]
 
 
+    def upsert_many(self, table: str, rows: list[dict], on_conflict: str, chunk: int = 500) -> int:
+        """Bulk upsert in chunks; returns number of rows sent."""
+        for i in range(0, len(rows), chunk):
+            r = self._client.post(
+                f"/{table}", params={"on_conflict": on_conflict}, json=rows[i : i + chunk],
+                headers={"Prefer": "resolution=merge-duplicates,return=minimal"},
+            )
+            r.raise_for_status()
+        return len(rows)
+
+    def rpc(self, fn: str, args: dict):
+        r = self._client.post(f"/rpc/{fn}", json=args)
+        r.raise_for_status()
+        return r.json()
+
+    def count(self, table: str, **filters: str) -> int:
+        r = self._client.head(
+            f"/{table}", params={"select": "id", **filters}, headers={"Prefer": "count=exact"}
+        )
+        r.raise_for_status()
+        return int(r.headers["content-range"].split("/")[-1])
+
+
 def get_db() -> Db:
     return Db()

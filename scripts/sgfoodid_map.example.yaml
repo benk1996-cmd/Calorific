@@ -1,0 +1,19 @@
+# Column map for scripts/ingest_sgfoodid.py. Values are the EXACT column headers in your files.
+# Run `python -m scripts.ingest_sgfoodid` first to see them. Copy to scripts/sgfoodid_map.yaml.
+file_glob: "*"                 # which files in data/raw/sgfoodid this map applies to
+name: "Food Name"              # required
+source_id: "Food ID"           # optional; defaults to a slug of the name
+aliases: ["Local Name", "Other Names"]   # optional; cells split on ; | ,
+food_group: "Food Group"       # optional
+serving_desc: "Serving Size"   # optional, e.g. "1 plate"
+serving_g: "Serving Weight (g)"          # optional but strongly recommended
+per_serving:                   # our nutrient key: your column
+  kcal: "Energy (kcal)"
+  protein_g: "Protein (g)"
+  carbs_g: "Carbohydrate (g)"
+  fat_g: "Total Fat (g)"
+  sugar_g: "Sugars (g)"
+  sodium_mg: "Sodium (mg)"
+  fibre_g: "Dietary Fibre (g)"
+# per_100g: { ... same keys ... }     # include if the export has per-100g columns
+# scale: { sodium_mg: 1000 }          # multiply a nutrient if the unit differs (e.g. sodium in g)
