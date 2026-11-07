@@ -2,8 +2,11 @@
 from fastapi import FastAPI
 
 from api.config import get_settings
+from api.routers_profile import router as profile_router
 
 app = FastAPI(title="Calorific API", docs_url="/api/docs", openapi_url="/api/openapi.json")
+
+app.include_router(profile_router)
 
 
 @app.get("/api/health")
