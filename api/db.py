@@ -32,6 +32,18 @@ class Db:
         return r.json()[0]
 
 
+    def insert(self, table: str, rows: list[dict]) -> list[dict]:
+        r = self._client.post(f"/{table}", json=rows, headers={"Prefer": "return=representation"})
+        r.raise_for_status()
+        return r.json()
+
+    def delete(self, table: str, **filters: str) -> None:
+        """Delete rows matching PostgREST filters (e.g. id='eq.1'). Always include a user scope."""
+        if not filters:
+            raise ValueError("refusing unfiltered delete")
+        r = self._client.delete(f"/{table}", params=filters)
+        r.raise_for_status()
+
     def upsert_many(self, table: str, rows: list[dict], on_conflict: str, chunk: int = 500) -> int:
         """Bulk upsert in chunks; returns number of rows sent."""
         for i in range(0, len(rows), chunk):

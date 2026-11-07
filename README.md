@@ -27,3 +27,9 @@ Full setup docs (Supabase, keys, ingestion, eval) are completed in M6.
    (use `--dry-run` first; prints row counts and DB size, free limit 500 MB).
 5. Resolver order: SG exact/alias → SG trigram → local USDA trigram → live USDA API (needs `USDA_API_KEY`) → model estimate.
    Tune with `RESOLVER_THRESHOLD`. `GET /api/foods/search?q=` powers manual search.
+
+## M3: recognition
+- `POST /api/analyze/photo` (multipart `image`, optional `note`) and `POST /api/analyze/text` (`{text}`) call the LLM, resolve foods, calculate nutrients and **auto-save the meal**. `GET /api/usage` shows remaining AI logs; `DELETE /api/meals/{id}` powers Undo.
+- **Mock mode is the default** (`LLM_MOCK=true`): a deterministic fake replaces OpenRouter so the 50/day free quota is never spent. Set `LLM_MOCK=false` and `OPENROUTER_API_KEY` for real calls.
+- Every model request (including retries) counts toward `ANALYZE_DAILY_LIMIT_PER_USER` / `ANALYZE_DAILY_LIMIT_GLOBAL`, reset at midnight SGT. At most 3 requests per analysis.
+- Photos are read into memory, validated by magic bytes (JPEG/PNG/WebP, ≤1.5 MB), sent to the model and discarded.

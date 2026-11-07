@@ -29,6 +29,7 @@ class Settings:
     resolver_llm_pick: bool = False
     llm_mock: bool = True
     llm_timeout_s: int = 60
+    app_url: str = "http://localhost:5173"
 
 
 def get_settings() -> Settings:
@@ -47,4 +48,5 @@ def get_settings() -> Settings:
         resolver_threshold=float(os.getenv("RESOLVER_THRESHOLD", "0.45")),
         resolver_llm_pick=os.getenv("RESOLVER_LLM_PICK", "false").lower() == "true",
         llm_mock=os.getenv("LLM_MOCK", "true").lower() == "true",
+        app_url=os.getenv("APP_URL", "http://localhost:5173"),
     )

@@ -36,3 +36,19 @@ export interface Profile {
 }
 export type ActivityLevel = "sedentary" | "light" | "moderate" | "active" | "very_active";
 export type Goal = "lose" | "maintain" | "gain";
+
+export interface MealItem {
+  id: string; name: string; source: "sgfoodid" | "usda" | "estimated"; kcal: number; protein_g: number;
+  carbs_g: number; fat_g: number; sugar_g: number; sodium_mg: number; fibre_g: number;
+  grams: number | null; confidence: number | null;
+}
+export interface Meal { id: string; meal_type: string; local_date: string; input_type: string; items: MealItem[] }
+export interface Summary {
+  date: string;
+  totals: Record<string, number>;
+  targets: Record<string, number | null>;
+  remaining: Record<string, number | null>;
+  item_count: number;
+}
+export interface Usage { date: string; used: number; user_limit: number; remaining: number }
+export interface AnalyzeResponse { not_food: boolean; meal: Meal | null; summary: Summary; usage: Usage }

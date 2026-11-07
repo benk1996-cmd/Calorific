@@ -4,6 +4,7 @@ import { Profile, api } from "./lib/api";
 import { supabase } from "./lib/supabase";
 import Login from "./pages/Login";
 import ProfileForm from "./pages/ProfileForm";
+import Today from "./pages/Today";
 
 export default function App() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
@@ -34,18 +35,5 @@ export default function App() {
   if (profile === null) return <ProfileForm initial={null} onboarding onSaved={setProfile} />;
   if (editing) return <ProfileForm initial={profile} onSaved={(p) => { setProfile(p); setEditing(false); }} />;
 
-  // Placeholder home until M4 (Today dashboard)
-  return (
-    <main className="mx-auto max-w-md p-6">
-      <h1 className="text-2xl font-bold text-green-700">Calorific</h1>
-      <p className="mt-4">Daily target: <b>{profile.target_kcal} kcal</b></p>
-      <p className="text-sm text-gray-600">
-        P {profile.target_protein_g}g · C {profile.target_carbs_g}g · F {profile.target_fat_g}g
-      </p>
-      <div className="mt-6 space-x-4 text-sm">
-        <button className="underline" onClick={() => setEditing(true)}>Edit profile</button>
-        <button className="underline" onClick={() => supabase.auth.signOut()}>Sign out</button>
-      </div>
-    </main>
-  );
+  return <Today profile={profile} onProfile={() => setEditing(true)} />;
 }

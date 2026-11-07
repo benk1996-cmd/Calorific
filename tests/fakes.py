@@ -38,3 +38,65 @@ class FakeRepo:
 
     def save(self, rows):
         self.saved += rows
+
+
+def _match(row: dict, filters: dict) -> bool:
+    for k, v in filters.items():
+        op, _, val = v.partition(".")
+        if op == "eq" and str(row.get(k)) != val:
+            return False
+        if op == "in" and str(row.get(k)) not in val.strip("()").split(","):
+            return False
+    return True
+
+
+class FakeDb:
+    """In-memory PostgREST stand-in (eq./in. filters, insert, delete, rpc) for endpoint tests."""
+
+    def __init__(self, foods: list[dict] | None = None):
+        self.t: dict[str, list[dict]] = {"profiles": [], "meals": [], "meal_items": [], "usage_counters": []}
+        self.repo = FakeRepo(foods or [])
+        self._n = 0
+        self.rpc_calls: list[str] = []
+
+    def select(self, table, **filters):
+        return [dict(r) for r in self.t[table] if _match(r, filters)]
+
+    def insert(self, table, rows):
+        out = []
+        for r in rows:
+            self._n += 1
+            row = {"id": f"{table[:1]}{self._n}", **r}
+            self.t[table].append(row)
+            out.append(dict(row))
+        return out
+
+    def upsert(self, table, row, on_conflict):
+        self.t[table] = [r for r in self.t[table] if r.get(on_conflict) != row.get(on_conflict)] + [row]
+        return row
+
+    def delete(self, table, **filters):
+        gone = [r for r in self.t[table] if _match(r, filters)]
+        self.t[table] = [r for r in self.t[table] if r not in gone]
+        if table == "meals":  # cascade
+            ids = {g["id"] for g in gone}
+            self.t["meal_items"] = [i for i in self.t["meal_items"] if i["meal_id"] not in ids]
+
+    def rpc(self, fn, args):
+        self.rpc_calls.append(fn)
+        if fn == "search_foods":
+            return [
+                {**vars(f), "id": f.id} for f in self.repo.search(args["p_q"], args["p_source"], args["p_min"], args["p_limit"])
+            ]
+        if fn == "try_consume_analyze":
+            rows = [r for r in self.t["usage_counters"] if r["local_date"] == args["p_date"]]
+            mine = next((r for r in rows if r["user_id"] == args["p_user"]), None)
+            if sum(r["analyze_count"] for r in rows) >= args["p_global_cap"] or (mine and mine["analyze_count"] >= args["p_user_cap"]):
+                return False
+            if mine:
+                mine["analyze_count"] += 1
+            else:
+                self.t["usage_counters"].append(
+                    {"user_id": args["p_user"], "local_date": args["p_date"], "analyze_count": 1})
+            return True
+        raise KeyError(fn)
