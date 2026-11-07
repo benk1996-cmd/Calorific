@@ -7,7 +7,7 @@ import EditMeal from "./EditMeal";
 
 const UNDO_SECONDS = 10;
 
-export default function Today({ profile, onProfile }: { profile: Profile; onProfile: () => void }) {
+export default function Today({ profile }: { profile: Profile }) {
   const day = todayInTz(profile.timezone);
   const [usage, setUsage] = useState<Usage | null>(null);
   const [summary, setSummary] = useState<Summary | null>(null);
@@ -97,10 +97,7 @@ export default function Today({ profile, onProfile }: { profile: Profile; onProf
 
   return (
     <main className="mx-auto max-w-md space-y-4 p-6">
-      <header className="flex items-baseline justify-between">
-        <h1 className="text-2xl font-bold text-green-700">Calorific</h1>
-        <button className="text-sm underline" onClick={onProfile}>Profile</button>
-      </header>
+      <h1 className="text-2xl font-bold text-green-700">Calorific</h1>
 
       <CalorieRing eaten={t.kcal ?? 0} target={tg.kcal ?? profile.target_kcal} />
       <p className="text-center text-sm text-gray-600">

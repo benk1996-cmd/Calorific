@@ -39,3 +39,8 @@ Full setup docs (Supabase, keys, ingestion, eval) are completed in M6.
 - Edit: `PATCH /api/meals/{id}` (meal type, note), `PATCH /api/meal-items/{id}` (swap food, grams, servings, name), `DELETE` for meals and items, `POST /api/meals/{id}/items` to add food to a meal.
 - `POST /api/meals/manual` logs a food from search with **no model call**, so it works after the daily AI cap. Edited items are marked `user_edited`.
 - With no reference food (estimates), changing the portion scales the existing nutrients proportionally.
+
+## M5: History & export
+- `GET /api/history?from=&to=` (max 90 days; defaults to the last 7 days in your timezone) returns a row per day (zero-filled), the per-day macros, averages over *logged* days and your current targets.
+- `GET /api/export.csv?from=&to=` (max 366 days) downloads one row per food item. Text cells starting with `=`, `+`, `-` or `@` are prefixed with `'` so spreadsheets don't run them as formulas.
+- The History tab shows 7/30-day calorie bars with a target line, daily averages, a table view and the CSV button. The target line uses your *current* target for every day (past targets aren't stored).

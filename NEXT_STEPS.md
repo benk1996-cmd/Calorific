@@ -11,10 +11,11 @@ _Last updated: 2026-11-07. Plan: [BUILD_PLAN.md](BUILD_PLAN.md)._
 | M2 Data layer | Built, committed, USDA data loaded | `0002_search.sql`, ingest scripts, USDA API client, resolver, `GET /api/foods/search` |
 | M3 Recognition | Built, committed (mock mode) | Calculator, vision/text parsing, OpenRouter client + fallbacks, quota guard, `POST /api/analyze/photo|text`, auto-save, Undo, capture UI |
 | M4 Dashboard & editing | Built, committed | Day summary, calorie ring, macro/sugar/sodium bars, meal list, edit/swap/delete, manual add (no model call) |
+| M5 History & export | Built, committed | `/api/history`, `/api/export.csv`, History tab (7/30-day bars + target line, averages, table view, CSV) |
 
 Verified so far:
-- Backend: 133 pytest tests pass (calc has 100% coverage; targets, profile, resolver on 20 SG dishes, ingest, search, analyze, quota, tally).
-- Frontend: `tsc`, `vite build` and 14 Vitest tests pass (checked by me in M3).
+- Backend: 139 pytest tests pass (calc has 100% coverage; targets, profile, resolver on 20 SG dishes, ingest, search, analyze, quota, tally).
+- Frontend: `tsc`, `vite build` and 20 Vitest tests pass (checked by me in M3).
 - Supabase: schema (`0001`, `0002`) applied. `food_reference` holds **13,224 USDA foods** (7,793 SR Legacy + 5,431 FNDDS), DB size 21.1 MB of 500 MB.
 - Login works locally with an invited email.
 
@@ -31,7 +32,6 @@ Verified so far:
 - [ ] Eval photos (30–50) in `eval/images/` and `eval/labels.csv`, needed for M6.
 
 **Needs me (remaining milestones)**
-- [ ] **M5** History: 7/30-day charts, averages, CSV export.
 - [ ] **M6** Eval script, rate-limit and error states, full README.
 
 ## Known caveats
@@ -43,7 +43,7 @@ Verified so far:
 
 ## Next step to run
 
-**Try M4 locally** (mock mode is fine): the Today screen should show a ring and bars. Log a meal by typing, tap *Edit*, change grams, *Swap food* (search "rice"), *Add food*, *Remove*, and *Delete meal*. Use *Search & add food manually* and confirm "AI logs left" does not change. Then say **"continue"** for M5 (History: 7/30-day charts, averages, CSV export).
+**Try M5 locally:** open the *History* tab. Log a few meals (use *Search & add food manually* so you don't spend AI calls), switch 7/30 days, hover a bar, open *Show as table*, and press *Export CSV* then open the file. Meals logged today appear under today's bar. Then say **"continue"** for M6 (eval script, error states, full README).
 
 Local run reminder:
 ```bash

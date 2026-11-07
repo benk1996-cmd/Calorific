@@ -4,12 +4,14 @@ import { Profile, api } from "./lib/api";
 import { supabase } from "./lib/supabase";
 import Login from "./pages/Login";
 import ProfileForm from "./pages/ProfileForm";
+import History from "./pages/History";
 import Today from "./pages/Today";
 
 export default function App() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [profile, setProfile] = useState<Profile | null | undefined>(undefined);
   const [editing, setEditing] = useState(false);
+  const [tab, setTab] = useState<"today" | "history">("today");
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -35,5 +37,18 @@ export default function App() {
   if (profile === null) return <ProfileForm initial={null} onboarding onSaved={setProfile} />;
   if (editing) return <ProfileForm initial={profile} onSaved={(p) => { setProfile(p); setEditing(false); }} />;
 
-  return <Today profile={profile} onProfile={() => setEditing(true)} />;
+  return (
+    <>
+      <nav className="mx-auto flex max-w-md gap-4 px-6 pt-4 text-sm">
+        {(["today", "history"] as const).map((t) => (
+          <button key={t} onClick={() => setTab(t)} aria-current={tab === t}
+            className={`capitalize ${tab === t ? "font-semibold text-green-700 underline" : "text-gray-600"}`}>{t}</button>
+        ))}
+        <span className="flex-1" />
+        <button className="text-gray-600" onClick={() => setEditing(true)}>Profile</button>
+        <button className="text-gray-600" onClick={() => supabase.auth.signOut()}>Sign out</button>
+      </nav>
+      {tab === "today" ? <Today profile={profile} /> : <History profile={profile} />}
+    </>
+  );
 }

@@ -1,6 +1,7 @@
 """In-memory FoodRepo mimicking search_foods (pg_trgm-style similarity)."""
 import re
 
+from api.db import Db
 from api.services.foodref import FoodRef
 
 
@@ -40,9 +41,24 @@ class FakeRepo:
         self.saved += rows
 
 
+_PARAMS = {"limit", "offset", "order", "select"}
+
+
 def _match(row: dict, filters: dict) -> bool:
     for k, v in filters.items():
+        if k in _PARAMS:
+            continue
+        if k == "and":  # "(col.op.val,col.op.val)"
+            for cond in v.strip("()").split(","):
+                col, op, val = cond.split(".", 2)
+                if not _match(row, {col: f"{op}.{val}"}):
+                    return False
+            continue
         op, _, val = v.partition(".")
+        if op == "gte" and not str(row.get(k)) >= val:
+            return False
+        if op == "lte" and not str(row.get(k)) <= val:
+            return False
         if op == "eq" and str(row.get(k)) != val:
             return False
         if op == "in" and str(row.get(k)) not in val.strip("()").split(","):
@@ -61,7 +77,13 @@ class FakeDb:
         self.rpc_calls: list[str] = []
 
     def select(self, table, **filters):
-        return [dict(r) for r in self.t[table] if _match(r, filters)]
+        rows = [dict(r) for r in self.t[table] if _match(r, filters)]
+        for col in reversed([c.split(".")[0] for c in filters.get("order", "").split(",") if c]):
+            rows.sort(key=lambda r: str(r.get(col)))
+        off, lim = int(filters.get("offset", 0)), filters.get("limit")
+        return rows[off : off + int(lim)] if lim else rows[off:]
+
+    select_all = Db.select_all  # reuse the real pagination loop on top of the fake select
 
     def insert(self, table, rows):
         out = []

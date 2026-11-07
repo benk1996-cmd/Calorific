@@ -58,3 +58,26 @@ export interface FoodResult {
   id: number; source: "sgfoodid" | "usda" | "estimated"; name: string; serving_desc: string | null;
   serving_g: number | null; per_serving: Record<string, number> | null; per_100g: Record<string, number> | null;
 }
+
+export interface DayTotals {
+  date: string; kcal: number; protein_g: number; carbs_g: number; fat_g: number;
+  sugar_g: number; sodium_mg: number; fibre_g: number; items: number; logged: boolean;
+}
+export interface History {
+  from: string; to: string; days: DayTotals[]; averages: Record<string, number>;
+  days_logged: number; targets: Record<string, number | null>;
+}
+
+/** Download the CSV export (needs the auth header, so it cannot be a plain link). */
+export async function downloadCsv(from: string, to: string): Promise<void> {
+  const { data } = await supabase.auth.getSession();
+  const r = await fetch(`/api/export.csv?from=${from}&to=${to}`, {
+    headers: data.session ? { Authorization: `Bearer ${data.session.access_token}` } : {},
+  });
+  if (!r.ok) throw new Error((await r.text()) || r.statusText);
+  const url = URL.createObjectURL(await r.blob());
+  const a = document.createElement("a");
+  a.href = url; a.download = `calorific_${from}_${to}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}

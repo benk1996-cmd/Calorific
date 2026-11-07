@@ -21,3 +21,9 @@ export const isOver = (value: number, target: number | null | undefined) => !!ta
 export function ringDash(eaten: number, target: number | null | undefined, circumference: number): number {
   return (pct(eaten, target) / 100) * circumference;
 }
+
+/** Add days to a YYYY-MM-DD string (calendar arithmetic, timezone-free). */
+export function addDays(iso: string, delta: number): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + delta)).toISOString().slice(0, 10);
+}

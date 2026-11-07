@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isOver, needsCheck, pct, ringDash, roundKcal, todayInTz } from "./format";
+import { addDays, isOver, needsCheck, pct, ringDash, roundKcal, todayInTz } from "./format";
 
 describe("format", () => {
   it("rounds kcal to nearest 5", () => {
@@ -35,5 +35,13 @@ describe("day + progress helpers", () => {
   it("computes ring dash length", () => {
     expect(ringDash(1000, 2000, 100)).toBe(50);
     expect(ringDash(4000, 2000, 100)).toBe(100);
+  });
+});
+
+describe("addDays", () => {
+  it("crosses month and year boundaries", () => {
+    expect(addDays("2026-11-07", -6)).toBe("2026-11-01");
+    expect(addDays("2026-03-01", -1)).toBe("2026-02-28");
+    expect(addDays("2026-12-31", 1)).toBe("2027-01-01");
   });
 });

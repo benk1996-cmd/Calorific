@@ -32,6 +32,15 @@ class Db:
         return r.json()[0]
 
 
+    def select_all(self, table: str, *, order: str, page: int = 1000, **filters: str) -> list[dict]:
+        """Paginated select (PostgREST caps responses at 1000 rows). `order` must be a stable sort."""
+        out: list[dict] = []
+        while True:
+            rows = self.select(table, order=order, limit=str(page), offset=str(len(out)), **filters)
+            out += rows
+            if len(rows) < page:
+                return out
+
     def insert(self, table: str, rows: list[dict]) -> list[dict]:
         r = self._client.post(f"/{table}", json=rows, headers={"Prefer": "return=representation"})
         r.raise_for_status()
