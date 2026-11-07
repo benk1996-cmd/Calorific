@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from api.config import get_settings
 from api.routers_analyze import router as analyze_router
 from api.routers_foods import router as foods_router
+from api.routers_meals import router as meals_router
 from api.routers_profile import router as profile_router
 
 app = FastAPI(title="Calorific API", docs_url="/api/docs", openapi_url="/api/openapi.json")
@@ -11,6 +12,7 @@ app = FastAPI(title="Calorific API", docs_url="/api/docs", openapi_url="/api/ope
 app.include_router(profile_router)
 app.include_router(foods_router)
 app.include_router(analyze_router)
+app.include_router(meals_router)
 
 
 @app.get("/api/health")

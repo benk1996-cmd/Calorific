@@ -48,4 +48,9 @@ def daily_summary(db: Db, user_id: str, day: str, profile: dict | None) -> dict:
     if meals:
         ids = ",".join(m["id"] for m in meals)
         items = db.select("meal_items", meal_id=f"in.({ids})")
-    return {"date": day, "meals": meals, **summarize(meals, items, profile)}
+    by_id: dict[str, list[dict]] = {}
+    for it in items:
+        by_id.setdefault(it["meal_id"], []).append(it)
+    meals = sorted(meals, key=lambda m: m.get("eaten_at_utc") or "")
+    full = [{**m, "items": by_id.get(m["id"], [])} for m in meals]
+    return {"date": day, "meals": full, **summarize(meals, items, profile)}

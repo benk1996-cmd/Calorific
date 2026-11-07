@@ -40,11 +40,13 @@ export type Goal = "lose" | "maintain" | "gain";
 export interface MealItem {
   id: string; name: string; source: "sgfoodid" | "usda" | "estimated"; kcal: number; protein_g: number;
   carbs_g: number; fat_g: number; sugar_g: number; sodium_mg: number; fibre_g: number;
-  grams: number | null; confidence: number | null;
+  grams: number | null; servings: number | null; confidence: number | null; user_edited?: boolean;
 }
-export interface Meal { id: string; meal_type: string; local_date: string; input_type: string; items: MealItem[] }
+export type MealType = "breakfast" | "lunch" | "snack" | "dinner";
+export interface Meal { id: string; meal_type: MealType; local_date: string; input_type: string; items: MealItem[] }
 export interface Summary {
   date: string;
+  meals: Meal[];
   totals: Record<string, number>;
   targets: Record<string, number | null>;
   remaining: Record<string, number | null>;
@@ -52,3 +54,7 @@ export interface Summary {
 }
 export interface Usage { date: string; used: number; user_limit: number; remaining: number }
 export interface AnalyzeResponse { not_food: boolean; meal: Meal | null; summary: Summary; usage: Usage }
+export interface FoodResult {
+  id: number; source: "sgfoodid" | "usda" | "estimated"; name: string; serving_desc: string | null;
+  serving_g: number | null; per_serving: Record<string, number> | null; per_100g: Record<string, number> | null;
+}

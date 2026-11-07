@@ -33,3 +33,9 @@ Full setup docs (Supabase, keys, ingestion, eval) are completed in M6.
 - **Mock mode is the default** (`LLM_MOCK=true`): a deterministic fake replaces OpenRouter so the 50/day free quota is never spent. Set `LLM_MOCK=false` and `OPENROUTER_API_KEY` for real calls.
 - Every model request (including retries) counts toward `ANALYZE_DAILY_LIMIT_PER_USER` / `ANALYZE_DAILY_LIMIT_GLOBAL`, reset at midnight SGT. At most 3 requests per analysis.
 - Photos are read into memory, validated by magic bytes (JPEG/PNG/WebP, ≤1.5 MB), sent to the model and discarded.
+
+## M4: Today dashboard & editing
+- `GET /api/days/{date}/summary` returns meals with items plus totals, targets, remaining, by-meal and item count (always a SUM over rows). The Today screen shows the calorie ring, macro bars and sugar/sodium caps (red when over).
+- Edit: `PATCH /api/meals/{id}` (meal type, note), `PATCH /api/meal-items/{id}` (swap food, grams, servings, name), `DELETE` for meals and items, `POST /api/meals/{id}/items` to add food to a meal.
+- `POST /api/meals/manual` logs a food from search with **no model call**, so it works after the daily AI cap. Edited items are marked `user_edited`.
+- With no reference food (estimates), changing the portion scales the existing nutrients proportionally.

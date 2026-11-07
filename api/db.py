@@ -37,6 +37,14 @@ class Db:
         r.raise_for_status()
         return r.json()
 
+    def update(self, table: str, values: dict, **filters: str) -> list[dict]:
+        """PATCH rows matching PostgREST filters. Always include a user scope (directly or via ownership check)."""
+        if not filters:
+            raise ValueError("refusing unfiltered update")
+        r = self._client.patch(f"/{table}", params=filters, json=values, headers={"Prefer": "return=representation"})
+        r.raise_for_status()
+        return r.json()
+
     def delete(self, table: str, **filters: str) -> None:
         """Delete rows matching PostgREST filters (e.g. id='eq.1'). Always include a user scope."""
         if not filters:

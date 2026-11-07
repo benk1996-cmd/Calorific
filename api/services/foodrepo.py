@@ -22,3 +22,7 @@ class DbFoodRepo:
 
     def save(self, rows: list[dict]) -> None:
         self._db.upsert_many("food_reference", rows, "source,source_id")
+
+    def get(self, food_id: int) -> FoodRef | None:
+        rows = self._db.select("food_reference", id=f"eq.{food_id}")
+        return FoodRef.from_row(rows[0]) if rows else None

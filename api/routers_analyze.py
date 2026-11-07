@@ -123,13 +123,3 @@ def analyze_text(
 def usage(user: User = Depends(get_current_user), db: Db = Depends(get_db),
           settings: Settings = Depends(get_settings)) -> dict:
     return get_usage(db, user.id, settings)
-
-
-@router.delete("/meals/{meal_id}")
-def delete_meal(meal_id: str, user: User = Depends(get_current_user), db: Db = Depends(get_db)) -> dict:
-    rows = db.select("meals", id=f"eq.{meal_id}", user_id=f"eq.{user.id}")
-    if not rows:
-        raise HTTPException(404, "Meal not found")
-    db.delete("meals", id=f"eq.{meal_id}", user_id=f"eq.{user.id}")  # items cascade
-    profile = _profile(db, user)
-    return {"summary": tally.daily_summary(db, user.id, rows[0]["local_date"], profile)}

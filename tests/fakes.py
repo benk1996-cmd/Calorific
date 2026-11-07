@@ -54,8 +54,9 @@ class FakeDb:
     """In-memory PostgREST stand-in (eq./in. filters, insert, delete, rpc) for endpoint tests."""
 
     def __init__(self, foods: list[dict] | None = None):
-        self.t: dict[str, list[dict]] = {"profiles": [], "meals": [], "meal_items": [], "usage_counters": []}
         self.repo = FakeRepo(foods or [])
+        self.t: dict[str, list[dict]] = {"profiles": [], "meals": [], "meal_items": [], "usage_counters": [],
+                                         "food_reference": [dict(r) for r in self.repo.rows]}
         self._n = 0
         self.rpc_calls: list[str] = []
 
@@ -74,6 +75,12 @@ class FakeDb:
     def upsert(self, table, row, on_conflict):
         self.t[table] = [r for r in self.t[table] if r.get(on_conflict) != row.get(on_conflict)] + [row]
         return row
+
+    def update(self, table, values, **filters):
+        rows = [r for r in self.t[table] if _match(r, filters)]
+        for r in rows:
+            r.update(values)
+        return [dict(r) for r in rows]
 
     def delete(self, table, **filters):
         gone = [r for r in self.t[table] if _match(r, filters)]

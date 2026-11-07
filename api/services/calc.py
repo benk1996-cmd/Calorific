@@ -109,3 +109,48 @@ def compute_item(item: FoodItem, food: FoodRef | None, cfg: CalcConfig = CalcCon
     if base is None:
         return _from_estimate(item, amount, mass)  # model's own estimate; modifiers already implied
     return Nutrition(apply_modifiers(base.nutrients, item.modifiers, food.name, cfg), base.grams, base.servings, base.source)
+
+
+def _rescale(current: dict, grams: float | None, servings: float | None) -> dict | None:
+    """No reference food (estimate / uncached USDA): scale existing nutrients by the portion ratio."""
+    cur_g, cur_s = current.get("grams"), current.get("servings")
+    if grams is not None and cur_g:
+        ratio = grams / cur_g
+    elif servings is not None and cur_s:
+        ratio = servings / cur_s
+    else:
+        return None
+    out = {k: float(current.get(k) or 0) * ratio for k in NUTRIENTS}
+    return {**out, "grams": cur_g * ratio if cur_g else None, "servings": cur_s * ratio if cur_s else None}
+
+
+def recompute_item(current: dict, food: FoodRef | None, grams: float | None, servings: float | None) -> dict | None:
+    """Nutrients + grams + servings for an edited/added item, or None if it cannot be computed.
+    Explicit grams win over servings. With neither given, keep the current portion (else 1 serving / 100 g)."""
+    if food is None:
+        return _rescale(current, grams, servings)
+    if grams is None and servings is None:
+        if current.get("grams"):
+            grams = current["grams"]
+        elif current.get("servings"):
+            servings = current["servings"]
+        elif food.per_serving:
+            servings = 1.0
+        else:
+            grams = 100.0
+    sg = food.serving_g
+    if grams is not None:
+        if food.per_100g:
+            n, s = _scale(food.per_100g, grams / 100.0), (grams / sg if sg else None)
+        elif food.per_serving and sg:
+            s = grams / sg
+            n = _scale(food.per_serving, s)
+        else:
+            return None
+        return {**n, "grams": grams, "servings": s}
+    if food.per_serving:
+        return {**_scale(food.per_serving, servings), "grams": sg * servings if sg else None, "servings": servings}
+    if food.per_100g and sg:
+        g = sg * servings
+        return {**_scale(food.per_100g, g / 100.0), "grams": g, "servings": servings}
+    return None
