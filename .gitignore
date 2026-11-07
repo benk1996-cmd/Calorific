@@ -1,0 +1,19 @@
+# secrets
+.env
+.env.*
+!.env.example
+# datasets (large / HPB data not redistributed)
+data/raw/
+eval/images/
+# python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.coverage
+# node
+node_modules/
+dist/
+*.tsbuildinfo
+# vercel
+.vercel/
