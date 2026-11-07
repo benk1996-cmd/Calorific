@@ -22,14 +22,25 @@ Verified so far:
 
 **Not verified yet (needs your accounts):** everything on Vercel, any real OpenRouter call, photo upload from a phone camera, and the full UI after M4/M5 (I could not drive a browser; only the logic and the rendered chart were checked).
 
+## Blocker right now: login email rate limit
+
+Supabase's built-in email sender allows only a few login emails per hour for the whole project, and it returned **"email rate limit exceeded"**. To get in: wait about an hour and request **one** link (check spam, and any session still open in another tab or browser still works). To fix it for good, set up **custom SMTP**:
+1. Create a free account with an email sender such as Resend, verify a sender address or domain, and create an SMTP key.
+2. Supabase → Project Settings → Authentication → SMTP Settings → enable custom SMTP and enter the host, port, user, password and sender address.
+3. Authentication → Rate Limits → raise the email limit (editable only once custom SMTP is on).
+
+You need a link only once per browser; the installed PWA and the regular browser keep separate sessions.
+
 ## Pending — needs you
 
 1. **Smoke-test M4/M5 locally** (mock mode): Today screen (ring, bars, edit/swap/delete, manual add), History tab (7/30 days, table view, CSV). Report anything odd with the exact message.
 2. **Deploy to Vercel** (first time): import the repo, add env vars (keep `LLM_MOCK=true`), open `/api/health`, add the Vercel URL to Supabase redirect URLs. *Heads-up:* I moved the backend from `api/` to `backend/` and added `includeFiles` in `vercel.json` so the Python function can import it. This is the least-tested part; if `/api/health` fails, send me the build log.
 3. **Real model test:** set `OPENROUTER_API_KEY`, allow free endpoints in OpenRouter privacy settings, set `LLM_MOCK=false`, and log a few meals. Each analysis uses 1–3 of the 50 daily calls. Tell me what the real output looks like; the prompts probably need tuning.
-4. **Eval:** put 30–50 photos in `eval/images/` and create `eval/labels.csv` (`filename,expected_dish,expected_kcal`). Run `python -m scripts.eval --dry-run` first. A full run (images × 4 models) exceeds the free daily quota, so use `--limit` and `--models`, spread over days. Then reorder `VISION_MODELS` by the results.
+4. **Eval:** put 30–50 photos in `eval/images/` and create `eval/labels.csv` (copy [eval/labels.example.csv](eval/labels.example.csv)). Columns: `filename` (exact name in `eval/images/`), `expected_dish` (HPB-style name), `expected_kcal` (a number for the whole meal, from the closest SG FoodID entry). Quote dish names that contain commas. Use JPEG or PNG (convert iPhone HEIC first) and include a few tricky photos and one non-food photo. Run `python -m scripts.eval --dry-run` first. A full run (images × 4 models) exceeds the free daily quota, so use `--limit` and `--models`, spread over days. Then reorder `VISION_MODELS` by the results. `labels.csv` is not gitignored; keep it out of a public repo if its calories come from HPB.
 5. **SG FoodID (HPB) data:** no API or bulk download found. Options: the tool's download button for the dishes you eat, ask HPB, or hand-type a CSV. Until then SG dishes use USDA or flagged model estimates. Then `python -m scripts.ingest_sgfoodid` and send me the columns for the YAML map.
-6. Optional: USDA Foundation Foods (re-extract the zip; the folder is missing `food.csv` and `food_nutrient.csv`), `USDA_API_KEY`, and commit `package-lock.json` if it isn't committed yet.
+6. **Env settings:** leave `TEXT_MODELS=` blank (it falls back to `VISION_MODELS`). Set `USDA_API_KEY` from https://fdc.nal.usda.gov/api-key-signup (optional; enables the live USDA fallback) and restart the backend. Add both to Vercel too.
+7. **Optional text model:** if Gemma parses typed meals badly or is often busy, put a plain chat (non-reasoning) free model first in `TEXT_MODELS` and keep Gemma as the fallback. Check openrouter.ai/models for current free IDs; reasoning models can use up the 1,500-token output limit and return empty JSON. I can add a text mode to the eval script if you want to compare them.
+8. Optional: USDA Foundation Foods (re-extract the zip; the folder is missing `food.csv` and `food_nutrient.csv`), and commit `package-lock.json` if it isn't committed yet.
 
 ## Known caveats
 - Trigram matching favours short names and USDA descriptions are long, so expect some misses. Tune `RESOLVER_THRESHOLD` once real data and eval results exist.
@@ -37,11 +48,13 @@ Verified so far:
 - The History target line uses your current target for every past day.
 - Food search does a sequential scan, which is fine at ~13k rows.
 - Per-request rate limiting beyond the daily quota isn't implemented (serverless instances don't share memory). The daily caps are the guard.
-- Free OpenRouter models change often; if a model ID disappears, edit `VISION_MODELS`.
+- Free OpenRouter models change often; if a model ID disappears, edit `VISION_MODELS` (or `TEXT_MODELS`).
+- `scripts/eval.py` tests photos only. There is no eval for typed-meal parsing yet.
 
 ## Next step to run
 
-Start with item 1 above, then deploy (item 2). Local run reminder:
+1. Get logged in again (wait out the email limit, then set up custom SMTP).
+2. Smoke-test M4/M5 (item 1), then deploy (item 2). Local run reminder:
 
 ```bash
 # terminal 1 (backend)
