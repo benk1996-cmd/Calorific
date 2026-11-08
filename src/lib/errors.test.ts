@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { friendlyError, NETWORK_ERROR } from "./errors";
+import { friendlyError, loginError, NETWORK_ERROR } from "./errors";
 
 describe("friendlyError", () => {
   it("explains expired sessions", () => expect(friendlyError(401, "Invalid or expired session")).toMatch(/sign in again/));
@@ -22,5 +22,16 @@ describe("friendlyError", () => {
     expect(friendlyError(418)).toBe("Request failed (418)");
     expect(friendlyError(413)).toMatch(/too large/);
     expect(NETWORK_ERROR).toMatch(/connection/);
+  });
+});
+
+describe("loginError", () => {
+  it("rewrites known Supabase messages", () => {
+    expect(loginError("email rate limit exceeded")).toMatch(/wait a while/);
+    expect(loginError("Signups not allowed for otp")).toMatch(/invited/);
+    expect(loginError("Unable to validate email address: invalid format")).toMatch(/valid email/);
+    expect(loginError("Failed to fetch")).toBe(NETWORK_ERROR);
+    expect(loginError("Something else")).toBe("Something else");
+    expect(loginError("")).toMatch(/try again/);
   });
 });

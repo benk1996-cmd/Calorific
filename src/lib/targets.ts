@@ -20,3 +20,8 @@ export function previewKcal(i: TargetInput): number {
   const bmr = 10 * i.weightKg + 6.25 * i.heightCm - 5 * age + (i.sex === "male" ? 5 : -161);
   return Math.round(Math.max(MIN_KCAL, bmr * ACTIVITY_FACTORS[i.activity] + GOAL_ADJUSTMENTS[i.goal]));
 }
+
+/** Macro gram targets for a calorie target (30% protein / 40% carbs / 30% fat), matching the server. */
+export function previewMacros(kcal: number): { protein: number; carbs: number; fat: number } {
+  return { protein: Math.round((kcal * 0.3) / 4), carbs: Math.round((kcal * 0.4) / 4), fat: Math.round((kcal * 0.3) / 9) };
+}

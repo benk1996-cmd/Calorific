@@ -1,17 +1,47 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { Profile, api } from "./lib/api";
-import { supabase } from "./lib/supabase";
+import { LoggingProvider, useLogging } from "./logging";
+import EditMeal from "./pages/EditMeal";
+import History from "./pages/History";
 import Login from "./pages/Login";
 import ProfileForm from "./pages/ProfileForm";
-import History from "./pages/History";
 import Today from "./pages/Today";
+import { AddFlow, AnalyzingBanner, BottomNav, Page, PageHeader, ResultToast, Tab } from "./shell";
+import { supabase } from "./lib/supabase";
+import { Button, Skeleton } from "./ui";
+
+function Shell({ profile, onSaved, tab, setTab }: { profile: Profile; onSaved: (p: Profile) => void; tab: Tab; setTab: (t: Tab) => void }) {
+  const L = useLogging();
+  const [sheet, setSheet] = useState<null | "add" | "text" | "search">(null);
+
+  if (L.editingId) return <EditMeal />;
+  const signOut = () => void supabase.auth.signOut();
+
+  return (
+    <>
+      <Page>
+        {tab === "today" && <Today onProfile={() => setTab("profile")} onAdd={() => setSheet("add")} onEdit={L.edit} />}
+        {tab === "history" && <History profile={profile} onProfile={() => setTab("profile")} />}
+        {tab === "profile" && (
+          <>
+            <PageHeader title="Settings" eyebrow={profile.display_name ?? undefined} name={profile.display_name} onProfile={() => setTab("today")} />
+            <ProfileForm initial={profile} onSaved={(p) => { onSaved(p); setTab("today"); }} onSignOut={signOut} />
+          </>
+        )}
+      </Page>
+      <AnalyzingBanner />
+      <ResultToast onEdit={L.edit} />
+      <BottomNav tab={tab} onTab={setTab} onAdd={() => setSheet("add")} />
+      <AddFlow sheet={sheet} setSheet={setSheet} />
+    </>
+  );
+}
 
 export default function App() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [profile, setProfile] = useState<Profile | null | undefined>(undefined);
-  const [editing, setEditing] = useState(false);
-  const [tab, setTab] = useState<"today" | "history">("today");
+  const [tab, setTab] = useState<Tab>("today");
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -21,34 +51,27 @@ export default function App() {
   }, []);
 
   const load = useCallback(async () => {
-    try {
-      setProfile((await api<{ profile: Profile | null }>("/api/profile")).profile);
-    } catch (e) { setError((e as Error).message); }
+    setError("");
+    try { setProfile((await api<{ profile: Profile | null }>("/api/profile")).profile); }
+    catch (e) { setError((e as Error).message); }
   }, []);
-  useEffect(() => { if (session) load(); else setProfile(undefined); }, [session, load]);
+  useEffect(() => { if (session) void load(); else { setProfile(undefined); setTab("today"); } }, [session, load]);
 
-  if (session === undefined) return <p className="p-6">Loading…</p>;
+  if (session === undefined) return <div className="mx-auto max-w-md space-y-4 p-6"><Skeleton className="h-10 w-40" /><Skeleton className="h-48" /></div>;
   if (!session) return <Login />;
   if (error) return (
-    <main className="p-6"><p className="text-red-600">{error}</p>
-      <button className="mt-3 underline" onClick={() => supabase.auth.signOut()}>Sign out</button></main>
+    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-3 p-6 text-center">
+      <p role="alert" className="rounded-2xl bg-danger-soft p-4 font-medium text-danger">{error}</p>
+      <Button onClick={() => void load()}>Try again</Button>
+      <Button variant="ghost" onClick={() => void supabase.auth.signOut()}>Sign out</Button>
+    </main>
   );
-  if (profile === undefined) return <p className="p-6">Loading…</p>;
+  if (profile === undefined) return <div className="mx-auto max-w-md space-y-4 p-6"><Skeleton className="h-10 w-40" /><Skeleton className="h-48" /><Skeleton className="h-32" /></div>;
   if (profile === null) return <ProfileForm initial={null} onboarding onSaved={setProfile} />;
-  if (editing) return <ProfileForm initial={profile} onSaved={(p) => { setProfile(p); setEditing(false); }} />;
 
   return (
-    <>
-      <nav className="mx-auto flex max-w-md gap-4 px-6 pt-4 text-sm">
-        {(["today", "history"] as const).map((t) => (
-          <button key={t} onClick={() => setTab(t)} aria-current={tab === t}
-            className={`capitalize ${tab === t ? "font-semibold text-green-700 underline" : "text-gray-600"}`}>{t}</button>
-        ))}
-        <span className="flex-1" />
-        <button className="text-gray-600" onClick={() => setEditing(true)}>Profile</button>
-        <button className="text-gray-600" onClick={() => supabase.auth.signOut()}>Sign out</button>
-      </nav>
-      {tab === "today" ? <Today profile={profile} /> : <History profile={profile} />}
-    </>
+    <LoggingProvider profile={profile} onLogging={() => setTab("today")}>
+      <Shell profile={profile} onSaved={setProfile} tab={tab} setTab={setTab} />
+    </LoggingProvider>
   );
 }

@@ -13,10 +13,11 @@ _Last updated: 2026-11-08. Plan: [BUILD_PLAN.md](BUILD_PLAN.md). Setup and usage
 | M4 Dashboard & editing | Built | Calorie ring, macro/sugar/sodium bars, meal list, edit/swap/delete, manual add |
 | M5 History & export | Built | 7/30-day chart with target line, averages, table view, CSV export |
 | M6 Eval & hardening | Built | `scripts/eval.py`, friendly error states, upload limits, security headers, full README |
+| UI/UX redesign | Built, screenshot-tested | Design tokens + dark mode, bottom nav with centre Add button, Add sheet, hero calorie ring, macro/limit bars, progress banner and Undo toast, portion steppers with auto-save, 3-step onboarding, friendlier login. See README "Design system" |
 
 Verified so far:
 - Backend: 155 pytest tests pass (94% coverage over `backend/` + `scripts/`; the calculator is at 100%).
-- Frontend: `tsc`, `vite build` and 25 Vitest tests pass. The chart was rendered to an image and checked.
+- Frontend: `tsc`, `vite build` and 35 Vitest tests pass. The redesigned screens were rendered in headless Chromium (light and dark, 320–430px wide) and checked for overflow and tap-target size.
 - Supabase: `0001` and `0002` applied; `food_reference` holds 13,224 USDA foods (SR Legacy + FNDDS), 21 MB of 500 MB.
 - Locally: login, onboarding and typed logging with Undo worked in mock mode.
 

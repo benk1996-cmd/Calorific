@@ -2,12 +2,76 @@
 @tailwind components;
 @tailwind utilities;
 
-/* History chart tokens (light surface; the app has no dark theme) */
+/* Design tokens: space-separated RGB channels so Tailwind can apply opacity (bg-brand/20). */
+:root {
+  color-scheme: light dark;
+  --bg: 246 247 244;
+  --card: 255 255 255;
+  --ink: 20 32 26;
+  --ink-2: 74 87 80;
+  --muted: 107 118 111;
+  --line: 228 232 226;
+  --brand: 21 128 61;
+  --brand-ink: 255 255 255;
+  --brand-soft: 232 245 236;
+  --protein: 42 120 214;
+  --carbs: 235 104 52;
+  --fat: 27 175 122;
+  --warn: 180 83 9;
+  --warn-soft: 254 243 199;
+  --danger: 220 38 38;
+  --danger-soft: 254 226 226;
+  --shadow: 20 32 26;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: 14 20 17;
+    --card: 22 29 25;
+    --ink: 238 243 239;
+    --ink-2: 182 194 186;
+    --muted: 143 156 148;
+    --line: 38 48 42;
+    --brand: 52 183 101;
+    --brand-ink: 6 19 11;
+    --brand-soft: 20 48 31;
+    --protein: 57 135 229;
+    --carbs: 217 89 38;
+    --fat: 25 158 112;
+    --warn: 251 191 36;
+    --warn-soft: 66 47 8;
+    --danger: 248 113 113;
+    --danger-soft: 69 26 26;
+    --shadow: 0 0 0;
+  }
+}
+
+html { -webkit-text-size-adjust: 100%; }
+body { @apply bg-bg font-sans text-ink antialiased; -webkit-tap-highlight-color: transparent; }
+button, [role="button"] { touch-action: manipulation; }
+:focus-visible { outline: 2px solid rgb(var(--brand)); outline-offset: 2px; border-radius: 6px; }
+.num { font-variant-numeric: tabular-nums; }
+input[type="search"]::-webkit-search-cancel-button { display: none; }
+.pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
+.pt-safe { padding-top: env(safe-area-inset-top, 0px); }
+
+/* shimmer placeholder */
+.skeleton { position: relative; overflow: hidden; @apply rounded-lg bg-line; }
+.skeleton::after {
+  content: ""; position: absolute; inset: 0; transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgb(var(--card) / 0.55), transparent);
+  animation: shimmer 1.4s infinite;
+}
+
+/* History chart tokens */
 .viz {
-  --surface-1: #ffffff;
-  --text-primary: #0b0b0b;
-  --text-secondary: #52514e;
-  --text-muted: #6b6a66;
-  --grid: #e8e8e5;
-  --series-1: #2a78d6;
+  --surface-1: rgb(var(--card));
+  --text-primary: rgb(var(--ink));
+  --text-secondary: rgb(var(--ink-2));
+  --text-muted: rgb(var(--muted));
+  --grid: rgb(var(--line));
+  --series-1: rgb(var(--brand));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }

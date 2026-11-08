@@ -1,186 +1,124 @@
-import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
-import { AnalyzeResponse, FoodResult, Meal, Profile, Summary, Usage, api } from "../lib/api";
-import { Bar, CalorieRing, FoodSearch } from "../components";
-import { needsCheck, roundKcal, todayInTz } from "../lib/format";
-import { resizeToJpeg } from "../lib/image";
-import EditMeal from "./EditMeal";
+import { Meal, MealItem, MealType } from "../lib/api";
+import { CalorieHero, LimitRow, MacroRow, SourceChip } from "../components";
+import { formatDay, greeting, mealTime, needsCheck, roundKcal } from "../lib/format";
+import { useLogging } from "../logging";
+import { PageHeader } from "../shell";
+import { Button, Card, Chip, Icon, IconName, Skeleton } from "../ui";
 
-const UNDO_SECONDS = 10;
+const MEAL_ICON: Record<MealType, IconName> = { breakfast: "sunrise", lunch: "sun", snack: "cup", dinner: "moon" };
 
-export default function Today({ profile }: { profile: Profile }) {
-  const day = todayInTz(profile.timezone);
-  const [usage, setUsage] = useState<Usage | null>(null);
-  const [summary, setSummary] = useState<Summary | null>(null);
-  const [result, setResult] = useState<Meal | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [undoLeft, setUndoLeft] = useState(0);
-  const [mode, setMode] = useState<"home" | "text" | "search">("home");
-  const [text, setText] = useState("");
-  const [busy, setBusy] = useState("");
-  const [msg, setMsg] = useState("");
-  const camera = useRef<HTMLInputElement>(null);
-  const upload = useRef<HTMLInputElement>(null);
+function portion(i: MealItem): string {
+  const parts: string[] = [];
+  if (i.servings && i.servings > 0) parts.push(`${+i.servings.toFixed(2)} serving${i.servings === 1 ? "" : "s"}`);
+  if (i.grams && i.grams > 0) parts.push(`${Math.round(i.grams)} g`);
+  return parts.join(" · ");
+}
 
-  const refresh = useCallback(async () => {
-    try {
-      const [s, u] = await Promise.all([api<Summary>(`/api/days/${day}/summary`), api<Usage>("/api/usage")]);
-      setSummary(s); setUsage(u);
-    } catch (e) { setMsg((e as Error).message); }
-  }, [day]);
-  useEffect(() => { refresh(); }, [refresh]);
-
-  useEffect(() => {
-    if (undoLeft <= 0) return;
-    const t = setTimeout(() => setUndoLeft((n) => n - 1), 1000);
-    return () => clearTimeout(t);
-  }, [undoLeft]);
-
-  const handle = useCallback((r: AnalyzeResponse) => {
-    setUsage(r.usage);
-    if (r.meal) setSummary(r.summary);
-    if (r.not_food || !r.meal) {
-      setResult(null);
-      setMsg("That doesn't look like food. Try another photo or describe it.");
-    } else {
-      setResult(r.meal); setUndoLeft(UNDO_SECONDS);
-    }
-  }, []);
-
-  async function run(label: string, fn: () => Promise<AnalyzeResponse>) {
-    setBusy(label); setMsg(""); setResult(null);
-    try { handle(await fn()); setMode("home"); setText(""); }
-    catch (e) { setMsg((e as Error).message); }
-    finally { setBusy(""); }
-  }
-
-  const onFile = (file?: File) => {
-    if (!file) return;
-    run("Resizing and analysing photo…", async () => {
-      const fd = new FormData();
-      fd.append("image", await resizeToJpeg(file), "meal.jpg");
-      return api<AnalyzeResponse>("/api/analyze/photo", { method: "POST", body: fd });
-    });
-  };
-
-  const onText = (e: FormEvent) => {
-    e.preventDefault();
-    run("Analysing…", () => api<AnalyzeResponse>("/api/analyze/text", { method: "POST", body: JSON.stringify({ text }) }));
-  };
-
-  async function addManual(f: FoodResult) {
-    setBusy("Adding…"); setMsg("");
-    try {
-      const r = await api<{ meal: Meal; summary: Summary }>("/api/meals/manual", { method: "POST", body: JSON.stringify({ food_ref_id: f.id }) });
-      setSummary(r.summary); setMode("home"); setEditingId(r.meal.id); // opens the editor so the portion can be set
-    } catch (e) { setMsg((e as Error).message); }
-    finally { setBusy(""); }
-  }
-
-  async function undo() {
-    if (!result) return;
-    try {
-      const r = await api<{ summary: Summary }>(`/api/meals/${result.id}`, { method: "DELETE" });
-      setSummary(r.summary); setResult(null); setUndoLeft(0); setMsg("Meal removed.");
-    } catch (e) { setMsg((e as Error).message); }
-  }
-
-  const editing = summary?.meals.find((m) => m.id === editingId);
-  if (editingId && editing) {
-    return <EditMeal meal={editing} onSummary={(s) => { setSummary(s); setResult(null); }} onClose={() => { setEditingId(null); refresh(); }} />;
-  }
-
-  const t = summary?.totals ?? {};
-  const tg = summary?.targets ?? {};
-  const limitReached = usage !== null && usage.remaining <= 0;
-  const total = result?.items.reduce((s, i) => s + i.kcal, 0) ?? 0;
-  const btn = "rounded-lg bg-green-600 p-4 font-medium text-white disabled:opacity-50";
-
+function MealCard({ meal, tz, onEdit }: { meal: Meal; tz: string; onEdit: () => void }) {
+  const kcal = meal.items.reduce((s, i) => s + i.kcal, 0);
   return (
-    <main className="mx-auto max-w-md space-y-4 p-6">
-      <h1 className="text-2xl font-bold text-green-700">Calorific</h1>
-
-      <CalorieRing eaten={t.kcal ?? 0} target={tg.kcal ?? profile.target_kcal} />
-      <p className="text-center text-sm text-gray-600">
-        <b>{roundKcal(t.kcal ?? 0)}</b> of {tg.kcal ?? profile.target_kcal} kcal
-        {usage && <> · AI logs left today: <b>{usage.remaining}</b></>}
-      </p>
-      <div className="space-y-2">
-        <Bar label="Protein" value={t.protein_g ?? 0} target={tg.protein_g ?? null} unit="g" />
-        <Bar label="Carbs" value={t.carbs_g ?? 0} target={tg.carbs_g ?? null} unit="g" />
-        <Bar label="Fat" value={t.fat_g ?? 0} target={tg.fat_g ?? null} unit="g" />
-        <Bar label="Sugar" value={t.sugar_g ?? 0} target={tg.sugar_g ?? null} unit="g" cap />
-        <Bar label="Sodium" value={t.sodium_mg ?? 0} target={tg.sodium_mg ?? null} unit="mg" cap />
-      </div>
-
-      <input ref={camera} type="file" accept="image/*" capture="environment" hidden onChange={(e) => { onFile(e.target.files?.[0]); e.target.value = ""; }} />
-      <input ref={upload} type="file" accept="image/*" hidden onChange={(e) => { onFile(e.target.files?.[0]); e.target.value = ""; }} />
-
-      {mode === "text" ? (
-        <form onSubmit={onText} className="space-y-2">
-          <textarea value={text} onChange={(e) => setText(e.target.value)} maxLength={300} rows={3} required
-            placeholder="e.g. 1 plate chicken rice less rice, kopi siew dai" className="w-full rounded border p-2" />
-          <div className="flex gap-2">
-            <button className={btn} disabled={!!busy || text.trim().length < 2}>Log it</button>
-            <button type="button" className="px-3 underline" onClick={() => setMode("home")}>Cancel</button>
-          </div>
-        </form>
-      ) : mode === "search" ? (
-        <FoodSearch onCancel={() => setMode("home")} onPick={addManual} />
-      ) : (
-        <>
-          <div className="grid grid-cols-3 gap-2">
-            <button className={btn} disabled={!!busy || limitReached} onClick={() => camera.current?.click()}>Take photo</button>
-            <button className={btn} disabled={!!busy || limitReached} onClick={() => upload.current?.click()}>Upload</button>
-            <button className={btn} disabled={!!busy || limitReached} onClick={() => setMode("text")}>Type it</button>
-          </div>
-          <button className="w-full text-sm underline" onClick={() => setMode("search")}>Search &amp; add food manually</button>
-        </>
-      )}
-
-      {limitReached && <p className="rounded bg-amber-50 p-3 text-sm text-amber-800">Daily AI limit reached. Use search to add food manually.</p>}
-      {busy && <p className="animate-pulse text-sm text-gray-600">{busy}</p>}
-      {msg && <p className="rounded bg-gray-100 p-3 text-sm">{msg}</p>}
-
-      {result && (
-        <section className="space-y-2 rounded-lg border border-green-300 bg-green-50 p-4">
-          <p className="font-semibold">Logged {roundKcal(total)} kcal · {result.meal_type}</p>
-          <ul className="space-y-1 text-sm">
-            {result.items.map((i) => (
-              <li key={i.id} className="flex justify-between">
-                <span>{needsCheck(i) && <span title="Please check this item">⚠ </span>}{i.name}</span>
-                <span>{roundKcal(i.kcal)} kcal</span>
-              </li>
-            ))}
-          </ul>
-          <div className="flex gap-4 text-sm">
-            <button onClick={() => setEditingId(result.id)} className="underline">Edit</button>
-            {undoLeft > 0 && <button onClick={undo} className="underline">Undo ({undoLeft}s)</button>}
-          </div>
-        </section>
-      )}
-
-      <section>
-        <h2 className="mb-1 text-sm font-semibold text-gray-700">Today's meals</h2>
-        {summary && summary.meals.length === 0 && <p className="text-sm text-gray-500">Nothing logged yet.</p>}
-        <ul className="space-y-2">
-          {summary?.meals.map((m) => (
-            <li key={m.id} className="rounded-lg border p-3 text-sm">
-              <div className="flex justify-between font-medium">
-                <span className="capitalize">{m.meal_type}</span>
-                <span>{roundKcal(m.items.reduce((s, i) => s + i.kcal, 0))} kcal</span>
-              </div>
-              <ul className="mt-1 text-gray-700">
-                {m.items.map((i) => (
-                  <li key={i.id} className="flex justify-between">
-                    <span>{needsCheck(i) && "⚠ "}{i.name}</span><span>{roundKcal(i.kcal)}</span>
-                  </li>
-                ))}
-              </ul>
-              <button className="mt-2 text-xs underline" onClick={() => setEditingId(m.id)}>Edit</button>
+    <Card padded={false}>
+      <button onClick={onEdit} className="block w-full rounded-2xl p-4 text-left transition active:bg-line/40" aria-label={`Edit ${meal.meal_type}`}>
+        <div className="mb-2 flex items-center justify-between">
+          <span className="flex items-center gap-2 text-sm font-bold capitalize">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-soft text-brand"><Icon name={MEAL_ICON[meal.meal_type]} className="h-[18px] w-[18px]" /></span>
+            {meal.meal_type}
+            <span className="text-xs font-medium normal-case text-muted">{mealTime(meal.eaten_at_utc, tz)}</span>
+          </span>
+          <span className="num font-bold">{roundKcal(kcal)} <span className="text-xs font-medium text-muted">kcal</span></span>
+        </div>
+        <ul className="divide-y divide-line">
+          {meal.items.map((i) => (
+            <li key={i.id} className="flex items-start justify-between gap-3 py-2">
+              <span className="min-w-0">
+                <span className="block text-[15px] font-medium leading-snug">{i.name}</span>
+                <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted">
+                  {portion(i) && <span>{portion(i)}</span>}
+                  <SourceChip source={i.source} />
+                  {needsCheck(i) && <Chip tone="warn"><Icon name="alert" className="h-3 w-3" />Check</Chip>}
+                </span>
+              </span>
+              <span className="num shrink-0 pt-0.5 text-sm font-semibold text-ink2">{roundKcal(i.kcal)}</span>
             </li>
           ))}
         </ul>
-      </section>
-    </main>
+      </button>
+    </Card>
+  );
+}
+
+function EmptyState({ onAdd }: { onAdd: () => void }) {
+  return (
+    <div className="flex flex-col items-center rounded-2xl border border-dashed border-line px-6 py-10 text-center">
+      <svg viewBox="0 0 96 96" className="mb-3 h-20 w-20" aria-hidden>
+        <circle cx="48" cy="48" r="34" fill="rgb(var(--brand-soft))" />
+        <circle cx="48" cy="48" r="19" fill="rgb(var(--card))" stroke="rgb(var(--brand))" strokeWidth="3" />
+        <path d="M14 24v12a6 6 0 0 0 12 0V24M20 24v48M76 24c-5 4-7 12-7 20h7v28" fill="none" stroke="rgb(var(--brand))" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      <h3 className="text-lg font-bold">Log your first meal</h3>
+      <p className="mt-1 max-w-[260px] text-sm text-muted">Snap a photo or describe what you ate. Your totals update instantly.</p>
+      <Button className="mt-4" icon="plus" onClick={onAdd}>Add a meal</Button>
+    </div>
+  );
+}
+
+export default function Today({ onProfile, onAdd, onEdit }: { onProfile: () => void; onAdd: () => void; onEdit: (id: string) => void }) {
+  const { profile, summary, loading, analyzing, notice, clearNotice, day } = useLogging();
+  const t = summary?.totals ?? {};
+  const tg = summary?.targets ?? {};
+  const name = profile.display_name?.trim().split(/\s+/)[0] || null;
+  // On an empty day lead with the call to action; the (all-zero) macro and limit cards follow it.
+  const firstRun = !!summary && summary.meals.length === 0 && !analyzing;
+  const nutrition = (
+    <>
+      <Card className="space-y-4">
+          <h2 className="text-sm font-bold text-ink2">Macros</h2>
+          <MacroRow label="Protein" value={t.protein_g ?? 0} target={tg.protein_g ?? null} color="bg-protein" />
+          <MacroRow label="Carbs" value={t.carbs_g ?? 0} target={tg.carbs_g ?? null} color="bg-carbs" />
+          <MacroRow label="Fat" value={t.fat_g ?? 0} target={tg.fat_g ?? null} color="bg-fat" />
+      </Card>
+
+      <Card className="space-y-4">
+          <h2 className="text-sm font-bold text-ink2">Daily limits</h2>
+          <LimitRow label="Sugar" value={t.sugar_g ?? 0} cap={tg.sugar_g ?? null} unit="g" />
+          <LimitRow label="Sodium" value={t.sodium_mg ?? 0} cap={tg.sodium_mg ?? null} unit="mg" />
+      </Card>
+
+    </>
+  );
+
+  return (
+    <>
+      <PageHeader eyebrow={formatDay(day)} title={`${greeting(profile.timezone)}${name ? `, ${name}` : ""}`} name={profile.display_name} onProfile={onProfile} />
+      <div className="space-y-4 px-5">
+        {notice && (
+          <div role={notice.kind === "error" ? "alert" : "status"}
+            className={`flex animate-fade-in items-start gap-3 rounded-2xl p-3.5 text-sm font-medium ${notice.kind === "error" ? "bg-danger-soft text-danger" : "bg-brand-soft text-brand"}`}>
+            <Icon name={notice.kind === "error" ? "alert" : "check"} className="mt-0.5 h-5 w-5" />
+            <p className="flex-1">{notice.text}</p>
+            <button onClick={clearNotice} aria-label="Dismiss message" className="-m-2 flex h-10 w-10 items-center justify-center"><Icon name="x" className="h-4 w-4" /></button>
+          </div>
+        )}
+
+        <Card>
+          {loading && !summary
+            ? <div className="flex items-center gap-5"><Skeleton className="h-[132px] w-[132px] rounded-full" /><div className="flex-1 space-y-3"><Skeleton className="h-8" /><Skeleton className="h-8" /><Skeleton className="h-4 w-2/3" /></div></div>
+            : <CalorieHero eaten={t.kcal ?? 0} target={tg.kcal ?? profile.target_kcal} />}
+        </Card>
+
+        {!firstRun && nutrition}
+
+        <section aria-label="Today's meals" className="space-y-3 pt-1">
+          <div className="flex items-baseline justify-between">
+            <h2 className="text-lg font-bold">Today's meals</h2>
+            {summary && summary.item_count > 0 && <span className="text-sm text-muted">{summary.item_count} item{summary.item_count === 1 ? "" : "s"}</span>}
+          </div>
+          {loading && !summary && <div className="space-y-3"><Skeleton className="h-28" /><Skeleton className="h-28" /></div>}
+          {firstRun && <EmptyState onAdd={onAdd} />}
+          {summary?.meals.map((m) => <MealCard key={m.id} meal={m} tz={profile.timezone} onEdit={() => onEdit(m.id)} />)}
+        </section>
+        {firstRun && nutrition}
+      </div>
+    </>
   );
 }

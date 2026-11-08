@@ -10,3 +10,14 @@ export function friendlyError(status: number, detail?: string | null, statusText
 }
 
 export const NETWORK_ERROR = "Can't reach the server. Check your connection and try again.";
+
+/** Friendlier wording for Supabase sign-in errors. */
+export function loginError(message: string): string {
+  const m = message.toLowerCase();
+  if (m.includes("rate limit")) return "Too many sign-in emails were requested. Please wait a while, then try once more.";
+  if (m.includes("signups not allowed") || m.includes("not allowed for otp"))
+    return "This email hasn't been invited yet. Ask the app owner to invite you.";
+  if (m.includes("invalid") && m.includes("email")) return "That doesn't look like a valid email address.";
+  if (m.includes("failed to fetch") || m.includes("network")) return NETWORK_ERROR;
+  return message || "Couldn't send the link. Please try again.";
+}

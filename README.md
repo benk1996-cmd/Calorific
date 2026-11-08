@@ -19,6 +19,14 @@ photo / typed text → vision or text LLM (OpenRouter, free, one request per ana
 - **Invite-only.** Sign-up is disabled; you add people in Supabase.
 - **Free-tier quota guard.** Every model request counts toward a per-user cap (default 10/day) and a global cap (default 45/day), reset at midnight Singapore time. At the cap you get "Daily AI limit reached. Use search to add food manually." Manual search-and-add never calls a model.
 
+## Design system
+
+- **Tokens, not hard-coded colours.** Light and dark palettes are CSS variables in `src/index.css` (RGB channels, so Tailwind can apply opacity) and mapped to Tailwind names in `tailwind.config.js` (`bg-card`, `text-ink2`, `bg-brand`, `bg-protein`, ...). Dark mode follows the system setting.
+- **Colour meaning.** Green is the brand and "on track". Amber means over the calorie target (informative, not alarming). Red is reserved for exceeding a sugar/sodium cap. Protein/carbs/fat use the first three colours of a colour-blind-checked categorical palette. Status is always also written in text, never colour alone.
+- **Components** live in `src/ui.tsx` (Button, Card, Sheet, Segmented, Field, icons), `src/components.tsx` (calorie ring, macro and limit bars, food search) and `src/shell.tsx` (bottom nav, Add sheet, progress banner, Undo toast).
+- **Logging state** is owned by `LoggingProvider` (`src/logging.tsx`) so any screen, including the centre Add button, can start a photo, text or search log.
+- **Accessibility:** 44px tap targets, visible focus rings, labelled progress bars and dialogs, reduced-motion support, safe-area padding for installed phone apps.
+
 ## Project layout
 
 ```

@@ -50,7 +50,7 @@ export interface MealItem {
   grams: number | null; servings: number | null; confidence: number | null; user_edited?: boolean;
 }
 export type MealType = "breakfast" | "lunch" | "snack" | "dinner";
-export interface Meal { id: string; meal_type: MealType; local_date: string; input_type: string; items: MealItem[] }
+export interface Meal { id: string; meal_type: MealType; local_date: string; input_type: string; eaten_at_utc?: string; items: MealItem[] }
 export interface Summary {
   date: string;
   meals: Meal[];
