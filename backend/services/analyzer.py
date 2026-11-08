@@ -1,15 +1,18 @@
 """Runs one analysis (photo or text) through the LLM with quota accounting and fallbacks.
 
 Every model request calls consume() first, so retries count against the daily quota.
-Flow: request with the full `models` list; on a transient failure retry with single models in turn;
+Flow: request with up to 3 models (OpenRouter's limit per request); on a transient failure try the next
+group of models, then single models in turn;
 on unparseable output retry once with a "valid JSON only" nudge. At most MAX_ATTEMPTS requests."""
 import base64
+import logging
 from typing import Callable
 
 from backend.schemas import AnalysisResult
-from backend.services.llm import LLMFatal, LLMProvider, LLMTransient
+from backend.services.llm import MAX_MODELS_PER_REQUEST, LLMFatal, LLMProvider, LLMTransient
 from backend.services.parsing import ParseError, parse_result
 
+log = logging.getLogger("calorific")
 MAX_ATTEMPTS = 3
 SCHEMA = (
     '{"not_food": false, "items": [{"name": str, "aliases": [str], "cuisine": str, '
@@ -74,18 +77,23 @@ class Analyzer:
     def _run(self, models: list[str], messages: list[dict]) -> AnalysisResult:
         if not models:
             raise AnalysisError("No AI models are configured")
-        use, idx, parse_retried, msgs = models, 0, False, list(messages)
+        n = MAX_MODELS_PER_REQUEST
+        groups = [models[i : i + n] for i in range(0, len(models), n)]
+        use, group, idx, parse_retried, msgs = groups[0], 1, 0, False, list(messages)
         for _ in range(MAX_ATTEMPTS):
             if not self.consume():
                 raise QuotaExceeded()
             try:
                 text = self.provider.complete(models=use, messages=msgs, timeout=self.timeout)
             except LLMTransient:
-                use = [models[idx % len(models)]]
-                idx += 1
+                if group < len(groups):
+                    use, group = groups[group], group + 1
+                else:
+                    use, idx = [models[idx % len(models)]], idx + 1
                 continue
-            except LLMFatal:
-                raise AnalysisError("AI provider is misconfigured") from None
+            except LLMFatal as e:
+                log.error("AI provider rejected the request: %s", e)
+                raise AnalysisError(f"The AI provider rejected the request ({e})") from None
             try:
                 return parse_result(text)
             except ParseError:

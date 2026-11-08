@@ -95,10 +95,18 @@ def test_quota_checked_before_every_call():
         a.analyze_text("x", MODELS)
 
 
-def test_fatal_provider_error():
-    a, _ = analyzer(Seq(LLMFatal("401")))
-    with pytest.raises(AnalysisError):
+def test_fatal_provider_error_shows_provider_message():
+    a, _ = analyzer(Seq(LLMFatal("HTTP 401: No auth credentials found")))
+    with pytest.raises(AnalysisError, match="No auth credentials found"):
         a.analyze_text("x", MODELS)
+
+
+def test_four_models_are_split_into_groups_of_three():
+    four = ["a", "b", "c", "d"]
+    p = Seq(LLMTransient("x"), LLMTransient("x"), GOOD); a, _ = analyzer(p)
+    a.analyze_text("laksa", four)
+    assert p.used == [["a", "b", "c"], ["d"], ["a"]]
+    assert all(len(u) <= 3 for u in p.used)
 
 
 def test_photo_message_has_image_and_note():
@@ -122,6 +130,7 @@ def test_openrouter_request_shape_and_content():
         return httpx.Response(200, json={"choices": [{"message": {"content": [{"text": "hi "}, {"text": "there"}]}}]})
     assert or_client(h).complete(models=["a", "b"], messages=[], timeout=5) == "hi there"
     assert seen["body"]["models"] == ["a", "b"] and "model" not in seen["body"]
+    assert seen["body"]["reasoning"] == {"enabled": False}  # keeps reasoning models from using up the token budget
     assert seen["h"]["authorization"] == "Bearer KEY" and seen["h"]["x-title"] == "Calorific" and seen["h"]["http-referer"] == "http://app"
     or_client(h).complete(models=["solo"], messages=[], timeout=5)
     assert seen["body"]["model"] == "solo"
@@ -137,6 +146,25 @@ def test_openrouter_request_shape_and_content():
 def test_openrouter_errors(resp, exc):
     with pytest.raises(exc):
         or_client(lambda r: resp).complete(models=["a"], messages=[], timeout=5)
+
+
+def test_openrouter_never_sends_more_than_three_models():
+    seen = {}
+    def h(req):
+        seen["body"] = json.loads(req.content)
+        return httpx.Response(200, json={"choices": [{"message": {"content": "x"}}]})
+    or_client(h).complete(models=["a", "b", "c", "d"], messages=[], timeout=5)
+    assert seen["body"]["models"] == ["a", "b", "c"]
+
+
+def test_openrouter_fatal_error_carries_provider_message():
+    r = httpx.Response(400, json={"error": {"message": "'models' array must have 3 items or fewer.", "code": 400}})
+    with pytest.raises(LLMFatal, match="HTTP 400: 'models' array must have 3 items or fewer"):
+        or_client(lambda req: r).complete(models=["a"], messages=[], timeout=5)
+    for body in (httpx.Response(401, text="<html>"), httpx.Response(403, json={"error": "plain string"}),
+                 httpx.Response(404, json={"error": {}})):
+        with pytest.raises(LLMFatal, match="HTTP 4"):
+            or_client(lambda req, b=body: b).complete(models=["a"], messages=[], timeout=5)
 
 
 def test_openrouter_network_error():

@@ -7,6 +7,7 @@ import httpx
 
 BASE_URL = "https://openrouter.ai/api/v1"
 RETRYABLE = {408, 429, 500, 502, 503, 504, 402}
+MAX_MODELS_PER_REQUEST = 3  # OpenRouter rejects a `models` array with more than 3 entries (HTTP 400)
 
 
 class LLMTransient(Exception):
@@ -21,6 +22,15 @@ class LLMProvider(Protocol):
     def complete(self, *, models: list[str], messages: list[dict], timeout: float) -> str: ...
 
 
+def _error_message(r: httpx.Response) -> str:
+    """OpenRouter's own error text (e.g. bad key, unknown model, data-policy). Never contains our key."""
+    try:
+        err = r.json().get("error", {})
+        return str(err.get("message") if isinstance(err, dict) else err)[:160] or "no details"
+    except (ValueError, AttributeError):
+        return "no details"
+
+
 class OpenRouterProvider:
     def __init__(self, api_key: str, app_url: str, *, http: httpx.Client | None = None):
         self.http = http or httpx.Client()
@@ -29,7 +39,10 @@ class OpenRouterProvider:
         }
 
     def complete(self, *, models: list[str], messages: list[dict], timeout: float) -> str:
-        body: dict = {"messages": messages, "temperature": 0.2, "max_tokens": 1500}
+        models = models[:MAX_MODELS_PER_REQUEST]
+        # reasoning off: some free models (e.g. Nemotron) otherwise spend the whole token budget thinking and
+        # return empty content. Models without a reasoning mode ignore the field.
+        body: dict = {"messages": messages, "temperature": 0.2, "max_tokens": 1500, "reasoning": {"enabled": False}}
         if len(models) == 1:
             body["model"] = models[0]
         else:
@@ -41,7 +54,7 @@ class OpenRouterProvider:
         if r.status_code in RETRYABLE:
             raise LLMTransient(f"status {r.status_code}")
         if r.status_code != 200:
-            raise LLMFatal(f"status {r.status_code}")
+            raise LLMFatal(f"HTTP {r.status_code}: {_error_message(r)}")
         try:
             data = r.json()
         except ValueError:

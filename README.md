@@ -48,7 +48,7 @@ Supabase's built-in email sender is rate-limited (a few emails an hour). For mor
 ### 2. OpenRouter (free vision models)
 1. Create a key at openrouter.ai → Keys.
 2. **Settings → Privacy**: allow free endpoints that may log or train on prompts. Without this most free models are not offered. This is accepted for the proof of concept.
-3. The free tier allows **50 requests/day for the whole account** and 20/minute. Each analysis uses 1 request, up to 3 when retrying. Models in `VISION_MODELS` are tried through OpenRouter's fallback list. The free catalogue changes often, so run the eval (below) and edit the list when a model disappears.
+3. The free tier allows **50 requests/day for the whole account** and 20/minute. Each analysis uses 1 request, up to 3 when retrying. Models in `VISION_MODELS` are tried through OpenRouter's fallback list. OpenRouter accepts at most 3 models per request, so the app sends the first 3 and, if they all fail, the next group in a follow-up request. Reasoning is switched off in every request because some free models (e.g. Nemotron) otherwise spend the whole output budget thinking and return nothing. The free catalogue changes often, so run the eval (below) and edit the list when a model disappears.
 
 ### 3. USDA API key (optional but recommended)
 Get a free key at https://fdc.nal.usda.gov/api-key-signup. It powers the last-resort live lookup (1,000 requests/hour); results are cached in your database.
@@ -154,7 +154,8 @@ The Vercel Hobby plan is for non-commercial use, which suits friends and family.
 | 401 / "session expired" | Wrong `SUPABASE_URL`/anon key in the backend, or the session expired (sign in again) |
 | 409 "Complete your profile first" | Finish onboarding |
 | 429 "Daily AI limit reached" | Per-user or global cap hit; use search to add food, or wait for midnight SGT |
-| 503 "AI service is busy" | All fallback models failed or rate-limited; try again shortly |
+| 503 "AI service is busy" | All fallback models failed or rate-limited (free models are often "temporarily rate-limited upstream"); try again shortly |
+| "The AI provider rejected the request (HTTP 4xx: ...)" | OpenRouter's own message is shown: bad key (401), unknown model (400/404), or free endpoints not allowed in OpenRouter privacy settings |
 | Everything is ⚠ and 300 kcal | `LLM_MOCK=true`, or no database match (load more food data) |
 | `function ... does not exist` | A migration hasn't been run |
 
