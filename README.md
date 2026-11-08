@@ -2,7 +2,7 @@
 
 A photo-based calorie tracker for Singapore food. Snap or upload a meal, or type it in. A free vision model on OpenRouter identifies the food and portion. Calories and nutrients come from Singapore HPB data first, then USDA, then the model's own estimate. The meal is logged automatically and your daily total is tracked against a target calculated from your profile.
 
-Stack: React + Vite + TypeScript + Tailwind PWA · FastAPI (Vercel Python Functions) · Supabase (Postgres + magic-link auth) · OpenRouter free models. Design decisions are in [BUILD_PLAN.md](BUILD_PLAN.md); current status is in [NEXT_STEPS.md](NEXT_STEPS.md).
+Stack: React + Vite + TypeScript + Tailwind PWA · FastAPI (Vercel Python Functions) · Supabase (Postgres + magic-link auth) · OpenRouter free models. Design decisions are in [BUILD_PLAN.md](BUILD_PLAN.md).
 
 ## How it works
 

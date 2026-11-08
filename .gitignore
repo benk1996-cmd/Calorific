@@ -18,3 +18,10 @@ dist/
 # vercel
 .vercel/
 eval/results/
+
+# local learning docs and notes (kept on disk, not tracked by git)
+docs/repo-diagram.svg
+docs/architecture-diagram.svg
+docs/vercel-mapping-diagram.svg
+docs/vercel-guide.md
+NEXT_STEPS.md
