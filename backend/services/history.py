@@ -13,17 +13,41 @@ def date_range(frm: date, to: date) -> list[str]:
     return [(frm + timedelta(days=i)).isoformat() for i in range((to - frm).days + 1)]
 
 
+def _items_for(db: Db, meals: list[dict], columns: str = "*") -> list[dict]:
+    items: list[dict] = []
+    for i in range(0, len(meals), CHUNK):
+        ids = ",".join(m["id"] for m in meals[i : i + CHUNK])
+        items += db.select_all("meal_items", order="id.asc", select=columns, meal_id=f"in.({ids})")
+    return items
+
+
 def load_range(db: Db, user_id: str, frm: date, to: date) -> tuple[list[dict], list[dict]]:
     """All of the user's meals and items between two local dates (inclusive)."""
     meals = db.select_all(
         "meals", order="local_date.asc,eaten_at_utc.asc,id.asc", user_id=f"eq.{user_id}",
         **{"and": f"(local_date.gte.{frm.isoformat()},local_date.lte.{to.isoformat()})"},
     )
-    items: list[dict] = []
-    for i in range(0, len(meals), CHUNK):
-        ids = ",".join(m["id"] for m in meals[i : i + CHUNK])
-        items += db.select_all("meal_items", order="id.asc", meal_id=f"in.({ids})")
-    return meals, items
+    return meals, _items_for(db, meals)
+
+
+def history_stats(db: Db, user_id: str) -> dict:
+    """How much history the user has: used for the reset confirmation and the backup range."""
+    meals = db.select_all("meals", order="local_date.asc,id.asc", select="id,local_date", user_id=f"eq.{user_id}")
+    items = _items_for(db, meals, "id")
+    return {
+        "meals": len(meals), "items": len(items),
+        "first_date": meals[0]["local_date"] if meals else None,
+        "last_date": meals[-1]["local_date"] if meals else None,
+    }
+
+
+def reset_history(db: Db, user_id: str) -> dict:
+    """Delete every meal (items cascade) belonging to the user. Profile, targets and AI usage counters are kept:
+    resetting the usage counters would let anyone bypass the daily AI cap."""
+    stats = history_stats(db, user_id)
+    if stats["meals"]:
+        db.delete("meals", user_id=f"eq.{user_id}")
+    return {"deleted_meals": stats["meals"], "deleted_items": stats["items"]}
 
 
 def build_history(meals: list[dict], items: list[dict], frm: date, to: date, profile: dict | None) -> dict:

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addDays, calorieStatus, formatDay, greeting, isOver, limitState, mealTime, needsCheck, pct, ringDash, roundKcal, todayInTz } from "./format";
+import { addDays, backupRange, calorieStatus, formatDay, greeting, isOver, limitState, mealTime, needsCheck, pct, ringDash, roundKcal, todayInTz } from "./format";
 
 describe("format", () => {
   it("rounds kcal to nearest 5", () => {
@@ -80,4 +80,15 @@ describe("limitState", () => {
     expect(limitState(51, 50)).toBe("over");
     expect(limitState(5, null)).toBe("ok");
   });
+});
+
+describe("backupRange", () => {
+  it("uses the whole history when it fits in the 366-day export limit", () =>
+    expect(backupRange("2026-10-01", "2026-11-08")).toEqual({ from: "2026-10-01", to: "2026-11-08", clamped: false }));
+  it("keeps the most recent year when history is longer", () => {
+    const r = backupRange("2024-01-01", "2026-11-08");
+    expect(r).toEqual({ from: "2025-11-08", to: "2026-11-08", clamped: true });
+  });
+  it("is exactly 366 days inclusive at the limit", () =>
+    expect(backupRange("2025-11-08", "2026-11-08").clamped).toBe(false));
 });

@@ -3,11 +3,12 @@ from datetime import date, datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
 from fastapi.responses import Response
 
 from backend.auth import User, get_current_user
 from backend.db import Db, get_db
-from backend.services.history import build_history, export_csv, load_range
+from backend.services.history import build_history, export_csv, history_stats, load_range, reset_history
 
 router = APIRouter(prefix="/api")
 MAX_HISTORY_DAYS = 90
@@ -55,3 +56,23 @@ def export(
         export_csv(meals, items), media_type="text/csv",
         headers={"Content-Disposition": f'attachment; filename="calorific_{start}_{end}.csv"'},
     )
+
+
+RESET_WORD = "RESET"
+
+
+class ResetIn(BaseModel):
+    confirm: str
+
+
+@router.get("/history/stats")
+def stats(user: User = Depends(get_current_user), db: Db = Depends(get_db)) -> dict:
+    return history_stats(db, user.id)
+
+
+@router.post("/history/reset")
+def reset(body: ResetIn, user: User = Depends(get_current_user), db: Db = Depends(get_db)) -> dict:
+    """Permanently delete all of the caller's meals. Requires the exact confirmation word."""
+    if body.confirm != RESET_WORD:
+        raise HTTPException(422, f'Type "{RESET_WORD}" to confirm')
+    return reset_history(db, user.id)

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { Profile, api } from "./lib/api";
 import { LoggingProvider, useLogging } from "./logging";
+import DataSection from "./pages/DataSection";
 import EditMeal from "./pages/EditMeal";
 import History from "./pages/History";
 import Login from "./pages/Login";
@@ -26,7 +27,8 @@ function Shell({ profile, onSaved, tab, setTab }: { profile: Profile; onSaved: (
         {tab === "profile" && (
           <>
             <PageHeader title="Settings" eyebrow={profile.display_name ?? undefined} name={profile.display_name} onProfile={() => setTab("today")} />
-            <ProfileForm initial={profile} onSaved={(p) => { onSaved(p); setTab("today"); }} onSignOut={signOut} />
+            <ProfileForm initial={profile} onSaved={(p) => { onSaved(p); setTab("today"); }} onSignOut={signOut}
+              dataSection={<DataSection onCleared={() => setTab("today")} />} />
           </>
         )}
       </Page>

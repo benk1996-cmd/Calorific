@@ -97,3 +97,5 @@ export async function downloadCsv(from: string, to: string): Promise<void> {
   document.body.appendChild(a); a.click(); a.remove();
   URL.revokeObjectURL(url);
 }
+
+export interface HistoryStats { meals: number; items: number; first_date: string | null; last_date: string | null }

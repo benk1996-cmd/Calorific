@@ -24,6 +24,7 @@ interface Ctx {
   edit: (id: string | null) => void;
   setSummary: (s: Summary) => void;
   refresh: () => Promise<void>;
+  afterReset: () => Promise<void>;
   openCamera: () => void;
   openUpload: () => void;
   logText: (text: string) => Promise<void>;
@@ -122,6 +123,11 @@ export function LoggingProvider({ profile, onLogging, children }: { profile: Pro
     dismissResult: () => { setResult(null); setUndoLeft(0); },
     edit,
     setSummary,
+    afterReset: async () => {
+      setResult(null); setUndoLeft(0); setEditingId(null);
+      await refresh();
+      setNotice({ kind: "info", text: "Your history has been cleared." });
+    },
     openCamera: () => camera.current?.click(),
     openUpload: () => upload.current?.click(),
     logText: (text) => run("Reading your description…", null, () =>

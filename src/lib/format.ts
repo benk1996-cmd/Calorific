@@ -67,3 +67,9 @@ export function limitState(value: number, cap: number | null | undefined): Tone 
   const r = value / cap;
   return r > 1 ? "over" : r >= 0.8 ? "near" : "ok";
 }
+
+/** CSV backup range for the whole history: the API exports at most 366 days, so keep the most recent year. */
+export function backupRange(first: string, last: string): { from: string; to: string; clamped: boolean } {
+  const earliest = addDays(last, -365);
+  return first < earliest ? { from: earliest, to: last, clamped: true } : { from: first, to: last, clamped: false };
+}

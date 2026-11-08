@@ -50,8 +50,8 @@ function TargetCard({ kcal, manual }: { kcal: number; manual: boolean }) {
   );
 }
 
-export default function ProfileForm({ initial: init, onSaved, onboarding, onSignOut }: {
-  initial: Profile | null; onSaved: (p: Profile) => void; onboarding?: boolean; onSignOut?: () => void;
+export default function ProfileForm({ initial: init, onSaved, onboarding, onSignOut, dataSection }: {
+  initial: Profile | null; onSaved: (p: Profile) => void; onboarding?: boolean; onSignOut?: () => void; dataSection?: ReactNode;
 }) {
   const start = useMemo(() => initial(init), [init]);
   const [f, setF] = useState<Form>(start);
@@ -164,6 +164,7 @@ export default function ProfileForm({ initial: init, onSaved, onboarding, onSign
         <Card><h2 className="mb-3 text-sm font-bold text-ink2">Daily target</h2>{target}</Card>
         {err && <p role="alert" className="rounded-xl bg-danger-soft p-3 text-sm font-medium text-danger">{err}</p>}
         <Button className="w-full" loading={busy} disabled={!dirty} onClick={save}>{dirty ? "Save changes" : "No changes"}</Button>
+        {dataSection}
         {onSignOut && <Button variant="secondary" icon="logout" className="w-full" onClick={onSignOut}>Sign out</Button>}
       </div>
     </div>

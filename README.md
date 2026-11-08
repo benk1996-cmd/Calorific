@@ -15,6 +15,7 @@ photo / typed text → vision or text LLM (OpenRouter, free, one request per ana
 
 - **Fully automatic logging.** Every meal can be edited, re-portioned, food-swapped or deleted afterwards. A 10-second Undo shows after logging.
 - **Estimates are flagged** with ⚠ (no database match, or model confidence below 0.5).
+- **Reset history.** Settings → Your data → *Reset history…* permanently deletes every logged meal and food item (`POST /api/history/reset`, which only accepts the exact confirmation word `RESET`; `GET /api/history/stats` powers the preview). It offers a CSV backup first and keeps your profile, targets and today's AI-call counters (clearing those would bypass the daily AI cap).
 - **Photos are never stored.** They are resized in the browser (≤1280px JPEG, EXIF stripped), sent to the model, and discarded. The server checks the real file type and size (≤1.5 MB), keeps uploads in memory, and never logs image bytes.
 - **Invite-only.** Sign-up is disabled; you add people in Supabase.
 - **Free-tier quota guard.** Every model request counts toward a per-user cap (default 10/day) and a global cap (default 45/day), reset at midnight Singapore time. At the cap you get "Daily AI limit reached. Use search to add food manually." Manual search-and-add never calls a model.

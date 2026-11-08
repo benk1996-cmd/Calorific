@@ -104,3 +104,51 @@ def test_export_csv_content_and_injection_guard(env):
     assert c.get("/api/export.csv", params={"from": "2025-01-01", "to": "2026-11-01"}).status_code == 422
     assert c.get("/api/export.csv", params={"from": "2025-11-01", "to": "2026-10-31"}).status_code == 200  # 365 days
     assert H.export_csv([], []).strip().split(",")[0] == "date"
+
+
+def test_stats_counts_only_own_history(env):
+    c, db, cur = env
+    assert c.get("/api/history/stats").json() == {"meals": 0, "items": 0, "first_date": None, "last_date": None}
+    seed(db, "A", "2026-11-02", "lunch", 500)
+    seed(db, "A", "2026-11-07", "dinner", 700)
+    seed(db, "B", "2026-10-01", "dinner", 999)
+    assert c.get("/api/history/stats").json() == {"meals": 2, "items": 2, "first_date": "2026-11-02", "last_date": "2026-11-07"}
+
+
+def test_reset_requires_exact_confirmation_and_deletes_nothing_without_it(env):
+    c, db, _ = env
+    seed(db, "A", "2026-11-02", "lunch", 500)
+    for bad in ({}, {"confirm": ""}, {"confirm": "reset"}, {"confirm": "yes"}):
+        assert c.post("/api/history/reset", json=bad).status_code == 422
+    assert len(db.t["meals"]) == 1 and len(db.t["meal_items"]) == 1
+
+
+def test_reset_deletes_only_own_meals_and_items_and_keeps_profile_and_usage(env):
+    c, db, cur = env
+    seed(db, "A", "2026-11-02", "lunch", 500)
+    seed(db, "A", "2026-11-03", "dinner", 600)
+    seed(db, "B", "2026-11-02", "lunch", 5000)
+    db.t["usage_counters"].append({"user_id": "A", "local_date": "2026-11-08", "analyze_count": 4})
+    r = c.post("/api/history/reset", json={"confirm": "RESET"})
+    assert r.status_code == 200 and r.json() == {"deleted_meals": 2, "deleted_items": 2}
+    assert [m["user_id"] for m in db.t["meals"]] == ["B"] and len(db.t["meal_items"]) == 1
+    assert db.t["meal_items"][0]["kcal"] == 5000                      # B's data untouched
+    assert len(db.t["profiles"]) == 2                                   # profiles kept
+    assert db.t["usage_counters"][0]["analyze_count"] == 4              # AI quota not reset
+    assert c.get("/api/history/stats").json()["meals"] == 0
+    # idempotent on an empty history
+    assert c.post("/api/history/reset", json={"confirm": "RESET"}).json() == {"deleted_meals": 0, "deleted_items": 0}
+
+
+def test_reset_handles_more_than_one_chunk_of_meals(env):
+    c, db, _ = env
+    for _ in range(130):
+        seed(db, "A", "2026-11-03", "snack", 10)
+    r = c.post("/api/history/reset", json={"confirm": "RESET"})
+    assert r.json() == {"deleted_meals": 130, "deleted_items": 130} and db.t["meals"] == [] and db.t["meal_items"] == []
+
+
+def test_history_reset_endpoints_require_auth():
+    app.dependency_overrides.clear()
+    assert TestClient(app).get("/api/history/stats").status_code == 401
+    assert TestClient(app).post("/api/history/reset", json={"confirm": "RESET"}).status_code == 401
