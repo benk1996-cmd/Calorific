@@ -1,7 +1,7 @@
 """Evaluate each vision model on your own labelled photos (REAL model calls, unless --mock).
 
     python -m scripts.eval --dry-run                    # show how many calls it would make
-    python -m scripts.eval --limit 10 --models google/gemma-4-31b-it:free
+    python -m scripts.eval --limit 10 --models nvidia/nemotron-3.5-super-vl:free
     python -m scripts.eval --mock --no-resolver         # pipeline smoke test, no key, no quota
 
 Inputs: eval/images/<file> and eval/labels.csv with columns filename,expected_dish,expected_kcal.

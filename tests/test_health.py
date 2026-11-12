@@ -7,4 +7,4 @@ def test_health():
     r = TestClient(app).get("/api/health")
     assert r.status_code == 200
     assert r.json()["status"] == "ok"
-    assert len(r.json()["vision_models"]) == 4
+    assert r.json()["vision_models"] == ["nvidia/nemotron-3.5-super-vl:free"]  # single built-in default

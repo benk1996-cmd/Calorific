@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel, Field
+from starlette.concurrency import run_in_threadpool
 from starlette.formparsers import MultiPartParser
 
 from backend.auth import User, get_current_user
@@ -90,17 +91,22 @@ async def analyze_photo(
     user: User = Depends(get_current_user), db: Db = Depends(get_db), settings: Settings = Depends(get_settings),
     provider: LLMProvider = Depends(get_provider), resolver: Resolver = Depends(get_resolver),
 ) -> dict:
-    profile = _profile(db, user)
     data = await image.read(MAX_IMAGE_BYTES + 1)
     if len(data) > MAX_IMAGE_BYTES:
         raise HTTPException(413, "Image is too large (max 1.5 MB)")
     mime = sniff_image(data)
     if mime is None:
         raise HTTPException(415, "Please upload a JPEG, PNG or WebP image")
-    analyzer = Analyzer(provider, make_consumer(db, user.id, settings), timeout=settings.llm_timeout_s)
-    result = _run(lambda: analyzer.analyze_photo(data, mime, note, settings.vision_models))
-    del data  # bytes are never stored or logged
-    return _finish(db, user, settings, profile, result, "photo", note, resolver)
+
+    def work() -> dict:
+        # Everything below blocks on the network (database, model). Running it in a worker thread keeps the
+        # event loop free, so one slow photo does not stall every other request on this server.
+        profile = _profile(db, user)
+        analyzer = Analyzer(provider, make_consumer(db, user.id, settings), timeout=settings.llm_timeout_s)
+        result = _run(lambda: analyzer.analyze_photo(data, mime, note, settings.vision_models))
+        return _finish(db, user, settings, profile, result, "photo", note, resolver)
+
+    return await run_in_threadpool(work)  # bytes are never stored or logged
 
 
 class TextIn(BaseModel):

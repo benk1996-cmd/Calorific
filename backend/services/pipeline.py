@@ -1,4 +1,5 @@
 """Turns an AnalysisResult into saved meal + items (resolve -> calculate -> save)."""
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 
 from backend.db import Db
@@ -7,11 +8,18 @@ from backend.services.calc import CalcConfig, compute_item
 from backend.services.resolver import Resolver
 from backend.services.tally import local_date_for, meal_type_for
 
+MAX_RESOLVE_WORKERS = 4
+
 
 def build_item_rows(result: AnalysisResult, resolver: Resolver, cfg: CalcConfig) -> list[dict]:
+    items = result.items
+    if len(items) > 1:  # database lookups are network-bound: resolve the items side by side
+        with ThreadPoolExecutor(max_workers=min(len(items), MAX_RESOLVE_WORKERS)) as pool:
+            resolutions = list(pool.map(lambda i: resolver.resolve(i.name, i.aliases), items))
+    else:
+        resolutions = [resolver.resolve(i.name, i.aliases) for i in items]
     rows = []
-    for item in result.items:
-        res = resolver.resolve(item.name, item.aliases)
+    for item, res in zip(items, resolutions):
         n = compute_item(item, res.food, cfg)
         rows.append({
             "name": item.name,

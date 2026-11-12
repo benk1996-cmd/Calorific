@@ -56,7 +56,10 @@ def analyzer(provider, budget=99):
             return False
         left["n"] -= 1
         return True
-    return Analyzer(provider, consume), left
+    sleeps: list[float] = []
+    a = Analyzer(provider, consume, backoff=1.5, sleep=sleeps.append)
+    a.sleeps = sleeps
+    return a, left
 
 
 def test_success_single_call():
@@ -109,6 +112,17 @@ def test_four_models_are_split_into_groups_of_three():
     assert all(len(u) <= 3 for u in p.used)
 
 
+def test_rate_limit_backs_off_before_retrying_but_not_after_the_last_attempt():
+    p = Seq(LLMTransient("429", rate_limited=True), LLMTransient("x"), GOOD); a, _ = analyzer(p)
+    a.analyze_text("laksa", ["a"])
+    assert a.sleeps == [1.5]  # only the 429 waits; a plain transient failure retries immediately
+
+    p = Seq(*[LLMTransient("429", rate_limited=True)] * MAX_ATTEMPTS); a, _ = analyzer(p)
+    with pytest.raises(ServiceBusy):
+        a.analyze_text("laksa", ["a"])
+    assert a.sleeps == [1.5, 1.5]  # no pointless wait after the final failure
+
+
 def test_photo_message_has_image_and_note():
     p = Seq(GOOD); a, _ = analyzer(p)
     seen = {}
@@ -146,6 +160,15 @@ def test_openrouter_request_shape_and_content():
 def test_openrouter_errors(resp, exc):
     with pytest.raises(exc):
         or_client(lambda r: resp).complete(models=["a"], messages=[], timeout=5)
+
+
+def test_openrouter_marks_429_as_rate_limited():
+    with pytest.raises(LLMTransient) as e:
+        or_client(lambda r: httpx.Response(429)).complete(models=["a"], messages=[], timeout=5)
+    assert e.value.rate_limited
+    with pytest.raises(LLMTransient) as e:
+        or_client(lambda r: httpx.Response(503)).complete(models=["a"], messages=[], timeout=5)
+    assert not e.value.rate_limited
 
 
 def test_openrouter_never_sends_more_than_three_models():

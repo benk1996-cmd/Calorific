@@ -162,3 +162,30 @@ def test_no_models_configured_is_clean_error():
     from backend.services.analyzer import Analyzer, AnalysisError
     with pytest.raises(AnalysisError):
         Analyzer(MockProvider(), lambda: True).analyze_text("x", [])
+
+
+def test_slow_photo_analysis_does_not_block_other_requests(env):
+    """The photo endpoint's blocking work must run off the event loop (health stays responsive)."""
+    import asyncio
+    import time
+
+    import httpx
+
+    class SlowProvider(MockProvider):
+        def complete(self, **kw):
+            time.sleep(0.6)  # a blocking model call
+            return super().complete(**kw)
+
+    app.dependency_overrides[get_provider] = lambda: SlowProvider()
+
+    async def go() -> float:
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t") as c:
+            t = time.perf_counter()
+            slow = asyncio.create_task(c.post("/api/analyze/photo", files={"image": ("m.jpg", JPEG, "image/jpeg")}))
+            await asyncio.sleep(0.1)  # let the slow request reach its blocking model call
+            assert (await c.get("/api/health")).status_code == 200
+            health_time = time.perf_counter() - t
+            assert (await slow).status_code == 200
+            return health_time
+
+    assert asyncio.run(go()) < 0.3

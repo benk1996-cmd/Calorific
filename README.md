@@ -57,7 +57,7 @@ Supabase's built-in email sender is rate-limited (a few emails an hour). For mor
 ### 2. OpenRouter (free vision models)
 1. Create a key at openrouter.ai → Keys.
 2. **Settings → Privacy**: allow free endpoints that may log or train on prompts. Without this most free models are not offered. This is accepted for the proof of concept.
-3. The free tier allows **50 requests/day for the whole account** and 20/minute. Each analysis uses 1 request, up to 3 when retrying. Models in `VISION_MODELS` are tried through OpenRouter's fallback list. OpenRouter accepts at most 3 models per request, so the app sends the first 3 and, if they all fail, the next group in a follow-up request. Reasoning is switched off in every request because some free models (e.g. Nemotron) otherwise spend the whole output budget thinking and return nothing. The free catalogue changes often, so run the eval (below) and edit the list when a model disappears.
+3. The free tier allows **50 requests/day for the whole account** and 20/minute. Each analysis uses 1 request, up to 3 when retrying. Models in `VISION_MODELS` are tried through OpenRouter's fallback list. OpenRouter accepts at most 3 models per request, so the app sends the first 3 and, if they all fail, the next group in a follow-up request. Reasoning is switched off in every request because some free models (e.g. Nemotron) otherwise spend the whole output budget thinking and return nothing, which also means models that *require* reasoning (e.g. `openrouter/free`) fail with HTTP 400 and must not be listed. A request that takes longer than `LLM_TIMEOUT_S` (25 s) is abandoned and retried, and an HTTP 429 waits 1.5 s before the retry. The built-in default is a single model (`nvidia/nemotron-3.5-super-vl:free`); add more to `VISION_MODELS` only if they work with reasoning off. The free catalogue changes often, so run the eval (below) and edit the list when a model disappears.
 
 ### 3. USDA API key (optional but recommended)
 Get a free key at https://fdc.nal.usda.gov/api-key-signup. It powers the last-resort live lookup (1,000 requests/hour); results are cached in your database.
@@ -70,6 +70,7 @@ Copy `.env.example` to `.env` for local use, and add the same values in Vercel �
 | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | Backend database and auth |
 | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` | Frontend (baked in at build time; anon key only) |
 | `OPENROUTER_API_KEY`, `VISION_MODELS`, `TEXT_MODELS` | Models (`TEXT_MODELS` defaults to `VISION_MODELS`) |
+| `LLM_TIMEOUT_S` | Seconds to wait for one model request before retrying (default 25) |
 | `LLM_MOCK` | `true` (default) uses a fake model so the quota is never spent. Set `false` for real calls |
 | `USDA_API_KEY` | Live USDA fallback |
 | `ALLOWED_EMAILS` | Optional comma-separated allow-list |
@@ -136,7 +137,7 @@ Put 30–50 photos of meals you eat in `eval/images/` and a `eval/labels.csv` wi
 
 ```bash
 python -m scripts.eval --dry-run                  # shows images × models = calls
-python -m scripts.eval --limit 10 --models google/gemma-4-31b-it:free
+python -m scripts.eval --limit 10 --models nvidia/nemotron-3.5-super-vl:free
 python -m scripts.eval --mock --no-resolver       # pipeline smoke test (no key, no quota)
 ```
 It runs each model on each photo (one raw request, no retries) and reports **recognition accuracy, resolver accuracy, mean absolute kcal error, latency and failure rate**, saving `eval/results/eval_*.md|csv`. Use the result to order `VISION_MODELS`, best first.

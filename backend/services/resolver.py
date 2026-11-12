@@ -38,7 +38,9 @@ class Resolver:
         if not queries:
             return Resolution(None, "estimated")
 
-        cands, best = self._best(queries, "sgfoodid", self.threshold)
+        has_source = getattr(self.repo, "has_source", None)
+        sg_loaded = has_source("sgfoodid") if has_source else True
+        cands, best = self._best(queries, "sgfoodid", self.threshold) if sg_loaded else ([], None)
         if best:
             if best.is_exact:
                 return Resolution(best, "sg_exact")

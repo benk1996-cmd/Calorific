@@ -7,10 +7,9 @@ def _list(name: str, default: str = "") -> list[str]:
     return [s.strip() for s in os.getenv(name, default).split(",") if s.strip()]
 
 
-DEFAULT_MODELS = (
-    "google/gemma-4-31b-it:free,nvidia/nemotron-3.5-super-vl:free,"
-    "google/gemma-4-26b-a4b-it:free,openrouter/free"
-)
+# Single default: it is the model that answered photos reliably when the Gemma models were rate-limited upstream.
+# Add more (comma-separated, best first) in VISION_MODELS / TEXT_MODELS if you want a fallback.
+DEFAULT_MODELS = "nvidia/nemotron-3.5-super-vl:free"
 
 
 @dataclass(frozen=True)
@@ -28,7 +27,7 @@ class Settings:
     resolver_threshold: float = 0.45
     resolver_llm_pick: bool = False
     llm_mock: bool = True
-    llm_timeout_s: int = 60
+    llm_timeout_s: float = 25.0
     app_url: str = "http://localhost:5173"
 
 
@@ -48,5 +47,6 @@ def get_settings() -> Settings:
         resolver_threshold=float(os.getenv("RESOLVER_THRESHOLD", "0.45")),
         resolver_llm_pick=os.getenv("RESOLVER_LLM_PICK", "false").lower() == "true",
         llm_mock=os.getenv("LLM_MOCK", "true").lower() == "true",
+        llm_timeout_s=float(os.getenv("LLM_TIMEOUT_S", "25")),
         app_url=os.getenv("APP_URL", "http://localhost:5173"),
     )

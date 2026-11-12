@@ -6,6 +6,7 @@ group of models, then single models in turn;
 on unparseable output retry once with a "valid JSON only" nudge. At most MAX_ATTEMPTS requests."""
 import base64
 import logging
+import time
 from typing import Callable
 
 from backend.schemas import AnalysisResult
@@ -14,6 +15,7 @@ from backend.services.parsing import ParseError, parse_result
 
 log = logging.getLogger("calorific")
 MAX_ATTEMPTS = 3
+RATE_LIMIT_BACKOFF_S = 1.5  # pause before retrying after an HTTP 429
 SCHEMA = (
     '{"not_food": false, "items": [{"name": str, "aliases": [str], "cuisine": str, '
     '"is_composite_dish": bool, "components": [str], "modifiers": [str], '
@@ -64,8 +66,10 @@ def photo_messages(image: bytes, mime: str, note: str | None = None) -> list[dic
 
 
 class Analyzer:
-    def __init__(self, provider: LLMProvider, consume: Callable[[], bool], *, timeout: float = 60):
+    def __init__(self, provider: LLMProvider, consume: Callable[[], bool], *, timeout: float = 25,
+                 backoff: float = RATE_LIMIT_BACKOFF_S, sleep: Callable[[float], None] = time.sleep):
         self.provider, self.consume, self.timeout = provider, consume, timeout
+        self.backoff, self.sleep = backoff, sleep
 
     def analyze_photo(self, image: bytes, mime: str, note: str | None, models: list[str]) -> AnalysisResult:
         return self._run(models, photo_messages(image, mime, note))
@@ -80,12 +84,14 @@ class Analyzer:
         n = MAX_MODELS_PER_REQUEST
         groups = [models[i : i + n] for i in range(0, len(models), n)]
         use, group, idx, parse_retried, msgs = groups[0], 1, 0, False, list(messages)
-        for _ in range(MAX_ATTEMPTS):
+        for attempt in range(MAX_ATTEMPTS):
             if not self.consume():
                 raise QuotaExceeded()
             try:
                 text = self.provider.complete(models=use, messages=msgs, timeout=self.timeout)
-            except LLMTransient:
+            except LLMTransient as e:
+                if e.rate_limited and attempt < MAX_ATTEMPTS - 1:
+                    self.sleep(self.backoff)
                 if group < len(groups):
                     use, group = groups[group], group + 1
                 else:

@@ -11,7 +11,12 @@ MAX_MODELS_PER_REQUEST = 3  # OpenRouter rejects a `models` array with more than
 
 
 class LLMTransient(Exception):
-    """Rate limit / provider down / timeout: another model or attempt may succeed."""
+    """Rate limit / provider down / timeout: another model or attempt may succeed.
+    `rate_limited` is True for HTTP 429, where retrying instantly is pointless."""
+
+    def __init__(self, message: str = "", *, rate_limited: bool = False):
+        super().__init__(message)
+        self.rate_limited = rate_limited
 
 
 class LLMFatal(Exception):
@@ -52,7 +57,7 @@ class OpenRouterProvider:
         except httpx.HTTPError as e:
             raise LLMTransient(f"network: {type(e).__name__}") from None
         if r.status_code in RETRYABLE:
-            raise LLMTransient(f"status {r.status_code}")
+            raise LLMTransient(f"status {r.status_code}", rate_limited=r.status_code == 429)
         if r.status_code != 200:
             raise LLMFatal(f"HTTP {r.status_code}: {_error_message(r)}")
         try:
